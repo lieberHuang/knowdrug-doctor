@@ -1,0 +1,17 @@
+const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
+const data=new Map();const sandbox={location:{hostname:'localhost',protocol:'http:'},document:{documentElement:{hasAttribute:()=>false},body:{dataset:{meetingRole:'doctor'}}},localStorage:{getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v)},CustomEvent:class{},window:{addEventListener(){},dispatchEvent(){}},setTimeout,clearTimeout,console};vm.createContext(sandbox);vm.runInContext(fs.readFileSync('dist/meeting-store.js','utf8'),sandbox);
+(async()=>{const api=sandbox.window.MeetingHub;let s=await api.request('snapshot');assert.equal(s.meetings.length,4);assert.equal(s.doctors.length,12);let initial=s.deliveries.length;
+let result=await api.request('send',{meetingId:'m3',doctorIds:['d1','d1','d2']});assert.equal(result.sentCount,2);assert.equal(result.state.deliveries.length,initial+2);
+await assert.rejects(api.request('send',{meetingId:'m3',doctorIds:['d1']}),/重复/);
+s=await api.request('read',{meetingId:'m3',doctorId:'d1'});let d=s.deliveries.find(d=>d.meetingId==='m3'&&d.doctorId==='d1');assert.ok(d.readAt);let first=d.readAt;
+s=await api.request('read',{meetingId:'m3',doctorId:'d1'});assert.equal(s.deliveries.find(d=>d.meetingId==='m3'&&d.doctorId==='d1').readAt,first);
+s=await api.request('respond',{meetingId:'m3',doctorId:'d1',response:'interested'});d=s.deliveries.find(d=>d.meetingId==='m3'&&d.doctorId==='d1');assert.equal(d.response,'interested');assert.equal(d.registration,null);
+const form={name:'测试医生',hospital:'合成医院',department:'学术科',phone:'13800000000',consent:true};
+await assert.rejects(api.request('register',{meetingId:'m3',doctorId:'d1',form:{...form,phone:'123'}}),/手机号/);
+await assert.rejects(api.request('register',{meetingId:'m3',doctorId:'d1',form:{...form,consent:false}}),/授权/);
+s=await api.request('register',{meetingId:'m3',doctorId:'d1',form});assert.equal(s.deliveries.find(d=>d.meetingId==='m3'&&d.doctorId==='d1').registration.name,'测试医生');
+await assert.rejects(api.request('register',{meetingId:'m3',doctorId:'d1',form}),/重复/);
+s=await api.request('cancel',{meetingId:'m3',doctorId:'d1'});d=s.deliveries.find(d=>d.meetingId==='m3'&&d.doctorId==='d1');assert.equal(d.registration,null);assert.equal(d.response,'declined');
+await assert.rejects(api.request('send',{meetingId:'m4',doctorIds:['d1']}),/截止/);
+await api.request('respond',{meetingId:'m3',doctorId:'d1',response:'interested'});await api.request('register',{meetingId:'m3',doctorId:'d1',form});assert.ok(JSON.parse(data.get('knowdrug-meetings-v1')).deliveries.some(d=>d.registration));
+console.log('Meeting store: send, dedupe, read receipt, intent, validation, registration, cancellation, re-registration, cutoff, persistence passed');})();
