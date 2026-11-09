@@ -23,23 +23,86 @@ function seed(){
  const delivery=(meetingId,doctorId,read=false,response='pending')=>({meetingId,doctorId,sentAt:at(-1),readAt:read?at(-1,1):null,response,respondedAt:response!=='pending'?at(-1,2):null,registration:null});
  return {version:1,revision:1,doctors,meetings,deliveries:[delivery('m1','d1'),delivery('m1','d2',true,'interested'),delivery('m1','d3',true,'declined'),delivery('m2','d1'),delivery('m2','d4',true)]};
 }
-function get(){let state;try{state=JSON.parse(localStorage.getItem(KEY));}catch{}if(!state||state.version!==1){state=seed();localStorage.setItem(KEY,JSON.stringify(state));}return state;}
+const sampleTags = {
+ m1:['用药安全','用法用量'], m2:['指南证据','临床研究'],
+ m3:['病历点评','特殊人群'], m4:['指南证据']
+};
+function get(){
+ let state;
+ try {state=JSON.parse(localStorage.getItem(KEY));} catch {}
+ if(!state||state.version!==1) state=seed();
+ if(state.features!==2){
+  for(const meeting of state.meetings) meeting.tags ??= sampleTags[meeting.id] || [];
+  const historical=state.meetings.find(meeting=>meeting.id==='m4');
+  if(historical&&!state.deliveries.some(d=>d.meetingId==='m4'&&d.doctorId==='d1')){
+   const sentAt=new Date(new Date(historical.start).getTime()-3*86400000).toISOString();
+   state.deliveries.push({meetingId:'m4',doctorId:'d1',sentAt,readAt:sentAt,response:'interested',respondedAt:sentAt,registration:null});
+  }
+  state.features=2;
+  state.revision++;
+  localStorage.setItem(KEY,JSON.stringify(state));
+ }
+ return state;
+}
+function cleanText(value,max){
+ if(typeof value!=='string'||value.trim().length>max)throw Error('请检查填写内容的长度');
+ return value.trim();
+}
+function createMeeting(state, input, now){
+ const start=Date.parse(input.start), end=Date.parse(input.end), deadline=Date.parse(input.deadline);
+ if(!(start>Date.now()&&end>start&&deadline>Date.now()&&deadline<=start))throw Error('请检查会议时间和报名截止时间');
+ const title=cleanText(input.title,120), location=cleanText(input.location,120);
+ if(!title||!location||!['online','offline'].includes(input.type))throw Error('请填写会议主题、形式和地点');
+ if(!Number.isInteger(input.capacity)||input.capacity<1||input.capacity>500)throw Error('请填写有效的报名名额');
+ if(!Array.isArray(input.agenda)||input.agenda.length<1||input.agenda.length>12)throw Error('请填写 1–12 项议程');
+ const agenda=input.agenda.map(row=>{
+  if(!Array.isArray(row)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(row[0]))throw Error('议程时间无效');
+  const subject=cleanText(row[1],120);
+  if(!subject)throw Error('议程内容不能为空');
+  return [row[0],subject];
+ });
+ if(!Array.isArray(input.tags)||input.tags.length>12)throw Error('请检查会议标签');
+ const tags=[...new Set(input.tags.map(tag=>cleanText(tag,30)).filter(Boolean))];
+ const meetingId='m'+(Math.max(0,...state.meetings.map(meeting=>Number(meeting.id.slice(1))||0))+1);
+ state.meetings.push({id:meetingId,title,location,type:input.type,capacity:input.capacity,agenda,tags,
+  intro:cleanText(input.intro,1000),address:'',start:new Date(start).toISOString(),end:new Date(end).toISOString(),
+  deadline:new Date(deadline).toISOString(),issuedAt:now,organizer:'知药学术支持团队',drug:'日达仙',source:'representative'});
+ return {state:put(state),meetingId};
+}
 function put(state){state.revision++;localStorage.setItem(KEY,JSON.stringify(state));window.dispatchEvent(new CustomEvent('meeting-state-updated'));return state;}
 function action(op,args={}){
  const s=get();if(op==='snapshot')return s;
+ const now=new Date().toISOString();
+ if(op==='create')return createMeeting(s,args.meeting||{},now);
  const m=s.meetings.find(m=>m.id===args.meetingId);if(!m)throw Error('会议不存在，请返回列表刷新');
  const closed=Date.now()>new Date(m.deadline).getTime();
  const d=s.deliveries.find(d=>d.meetingId===m.id&&d.doctorId===args.doctorId);
- const now=new Date().toISOString();
+ const ended=Date.parse(m.end)<=Date.now();
  if(op==='send'){
   if(closed)throw Error('会议已截止报名，无法继续邀请');
   const ids=[...new Set(args.doctorIds||[])];if(!ids.length||ids.some(id=>!s.doctors.some(d=>d.id===id)))throw Error('请选择有效的医生');
   const added=ids.filter(id=>!s.deliveries.some(d=>d.meetingId===m.id&&d.doctorId===id));
   if(!added.length)throw Error('所选医生已收到邀请，无需重复发送');
-  added.forEach(doctorId=>s.deliveries.push({meetingId:m.id,doctorId,sentAt:now,readAt:null,response:'pending',respondedAt:null,registration:null}));
+  const messages=new Map(added.map(doctorId=>[doctorId,cleanText(args.messages?.[doctorId] ?? '',600)]));
+  added.forEach(doctorId=>s.deliveries.push({meetingId:m.id,doctorId,sentAt:now,readAt:null,
+   response:'pending',respondedAt:null,registration:null,invitation:messages.get(doctorId)}));
   return {state:put(s),sentCount:added.length};
  }
+ if(op==='recap'){
+  if(!ended)throw Error('会议结束后可填写会后记录');
+  const summary=cleanText(args.summary,1200), followUp=cleanText(args.followUp,1200);
+  if(!summary&&!followUp)throw Error('请至少填写会议反馈或跟进事项');
+  m.recap={summary,followUp,at:now};
+  return put(s);
+ }
  if(!d)throw Error('尚未收到此会议邀请');
+ if(op==='feedback'){
+  if(!ended)throw Error('会议结束后可提交意见反馈');
+  const comment=cleanText(args.comment,1000);
+  if(!comment)throw Error('请填写会议意见反馈');
+  d.feedback={comment,at:now};
+  return put(s);
+ }
  if(op==='read'){if(!d.readAt){d.readAt=now;put(s);}return s;}
  if(op==='respond'){
   if(closed)throw Error('已截止报名，无法修改参与意向');
@@ -67,12 +130,12 @@ if(bridgeMode){
  const allowed=[REP_ORIGIN];if(local)allowed.push(location.protocol+'//'+location.hostname+':8081');
  window.addEventListener('message',e=>{
   const p=e.data;if(e.source!==parent||!allowed.includes(e.origin)||p?.channel!==CHANNEL||typeof p.id!=='string')return;
-  try{if(!['snapshot','send'].includes(p.op))throw Error('操作未获授权');e.source.postMessage({channel:CHANNEL,id:p.id,result:action(p.op,p.args)},e.origin);}catch(err){e.source.postMessage({channel:CHANNEL,id:p.id,error:err.message},e.origin);}
+  try{if(!['snapshot','send','create','recap'].includes(p.op))throw Error('操作未获授权');e.source.postMessage({channel:CHANNEL,id:p.id,result:action(p.op,p.args)},e.origin);}catch(err){e.source.postMessage({channel:CHANNEL,id:p.id,error:err.message},e.origin);}
  });return;
 }
 let frame,seq=0;const pending=new Map();
 function remote(op,args){
- if(!frame){frame=document.createElement('iframe');frame.src=ownerOrigin+'/meeting-bridge.html?v=20261103';frame.title='会议状态连接';frame.hidden=true;document.body.append(frame);}
+ if(!frame){frame=document.createElement('iframe');frame.src=ownerOrigin+'/meeting-bridge.html?v=20261109';frame.title='会议状态连接';frame.hidden=true;document.body.append(frame);}
  return new Promise((resolve,reject)=>{
   const id='q'+Date.now()+'-'+(++seq);const timer=setTimeout(()=>{pending.delete(id);reject(Error('会议连接超时，请重试，并确认浏览器允许站点存储'));},12000);
   pending.set(id,{resolve,reject,timer});
