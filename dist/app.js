@@ -109,7 +109,7 @@ window.addEventListener('touchstart',event=>{welcomeTouchY=event.touches[0]?.cli
 window.addEventListener('touchmove',event=>{if(welcomeTouchY!==null&&event.touches[0].clientY-welcomeTouchY>24){restoreWelcomeAtTop();welcomeTouchY=null;}},{passive:true});
 window.addEventListener('touchend',()=>{welcomeTouchY=null;},{passive:true});
 
-const pageTitles={meetings:'我的会议',meetingDetail:'会议详情',meetingRegister:'会议报名',home:'首页',case:'病历点评',caseDetail:'病历详情',casePublish:'发布病历',caseRedact:'遮挡患者信息',guides:'相关指南',papers:'最新文献',history:'问答记录',favorites:'我的收藏',academic:'学术中心',mine:'我的'};
+const pageTitles={patientInsights:'患者洞察',meetings:'我的会议',meetingDetail:'会议详情',meetingRegister:'会议报名',home:'首页',case:'病历点评',caseDetail:'病历详情',casePublish:'发布病历',caseRedact:'遮挡患者信息',guides:'相关指南',papers:'最新文献',history:'问答记录',favorites:'我的收藏',academic:'学术中心',mine:'我的'};
 history.replaceState({page:'home'},'');
 function navigate(page, options={}) {
  if(!pageTitles[page]) page='home';
@@ -189,6 +189,8 @@ function renderModule(page) {
  const root=$('#module-page');
  if(['meetings','meetingDetail','meetingRegister'].includes(page)){
  Meetings.render(page,pageContext.id);
+ }else if(page==='patientInsights'){
+ PatientInsights.render(root);
  }else if(page==='academic'){
  root.innerHTML=`<div class="hub-banner"><h2>学术工具</h2>${icon('book')}</div><div class="hub-links">${[['case','case','病历点评','梳理信息，聚焦病例讨论'],['guides','book','相关指南','从临床问题出发，查阅循证依据'],['papers','paper','最新文献','梳理研究方法与证据质量']].map(([page,symbol,title,desc])=>`<button class="hub-row" data-page="${page}"><span class="tool-icon">${icon(symbol)}</span><div><h3>${title}</h3></div><span class="row-chevron">›</span></button>`).join('')}</div><h2 class="section-caption">随时回顾</h2><div class="profile-links"><button class="profile-row" data-page="favorites">${icon('star')}我的收藏<span class="row-chevron">›</span></button></div>`;
  }else if(page==='mine'){
