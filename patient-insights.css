@@ -24,29 +24,51 @@ body[data-meeting-role="doctor"] .bottom-nav {
 .pi-cohort p { color: #e1edff; font-size: 13px; line-height: 1.65; }
 .pi-cohort .pi-product { font-size: 14px; font-weight: 600; }
 .pi-card {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
   padding: 16px;
   background: #fff;
   border: 1px solid #e4edf9;
   border-radius: 14px;
+  min-width: 0;
 }
-.pi-icon {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  color: #2866cc;
-  background: #edf4ff;
-  border-radius: 9px;
+.pi-card h2 { font-size: 17px; line-height: 1.4; }
+.pi-card h3 { font-size: 15px; line-height: 1.4; }
+.pi-card-heading { display: flex; justify-content: space-between; align-items: center; }
+.pi-reset { color: #2059b4; min-height: 36px; padding-inline: 4px; }
+.pi-reset:disabled { color: #61738c; }
+.pi-filters { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin-top: 8px; }
+.pi-filters label { min-width: 0; font-size: 12px; color: #425e80; }
+.pi-filters select {
+  display: block;
+  width: 100%;
+  min-height: 42px;
+  margin-top: 6px;
+  padding: 6px 4px;
+  border: 1px solid #d6e4f8;
+  border-radius: 8px;
+  color: #19345b;
+  background: #f7faff;
+  font: inherit;
 }
-.pi-icon svg { width: 19px; height: 19px; }
-.pi-card h3 { font-size: 16px; line-height: 1.45; }
-.pi-card p, .pi-dashboard .pi-empty {
+.pi-card .pi-context { margin: 7px 0 12px; color: #425e80; font-size: 13px; line-height: 1.5; }
+.pi-topics { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 15px; }
+.pi-topics button {
+  padding: 6px 9px;
+  min-height: 36px;
+  border: 1px solid #d6e4f8;
+  border-radius: 8px;
   color: #425e80;
-  font-size: 14px;
-  line-height: 1.7;
-  margin-top: 5px;
+  background: #fff;
+  font-size: 12px;
+}
+.pi-topics button[aria-pressed="true"] { color: #2059b4; background: #edf4ff; border-color: #91b7ef; }
+.pi-questions { list-style: none; margin: 8px 0 0; padding: 0; }
+.pi-questions li { padding: 9px 0; border-top: 1px solid #e4edf9; }
+.pi-questions p { font-size: 14px; line-height: 1.55; }
+.pi-questions span { color: #425e80; font-size: 12px; }
+.pi-card .pi-empty { color: #425e80; font-size: 14px; line-height: 1.6; }
+.pi-dashboard :is(select,button):focus-visible { outline: 2px solid #2866cc; outline-offset: 2px; }
+@media (max-width: 360px) {
+  .pi-filters { grid-template-columns: 1fr; }
+  .pi-filters label { display: grid; grid-template-columns: 64px 1fr; align-items: center; }
+  .pi-filters select { margin-top: 0; }
 }
