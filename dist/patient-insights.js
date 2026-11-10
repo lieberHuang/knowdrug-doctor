@@ -59,11 +59,6 @@ window.PatientInsights = (() => {
     const filters={age:'',region:'',stage:''};
     let selectedTopic='';
     root.innerHTML = `<div class="pi-dashboard">
-      <section class="pi-cohort" aria-labelledby="pi-explore-title">
-        <p class="pi-product">日达仙</p>
-        <h2 id="pi-explore-title">按人群探索</h2>
-        <p>结合年龄、所在地区和疾病进展，查看不同人群的提问。</p>
-      </section>
       <section class="pi-card" aria-labelledby="pi-filter-title">
         <div class="pi-card-heading"><h2 id="pi-filter-title">筛选人群</h2><button type="button" class="pi-reset" disabled>重置</button></div>
         <div class="pi-filters">${dimensions.map(({id,label,options})=>`<label for="pi-${id}">${label}

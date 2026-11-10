@@ -12,17 +12,6 @@ body[data-meeting-role="doctor"] .bottom-nav {
   padding-bottom: 8px;
 }
 .pi-dashboard h2, .pi-dashboard h3, .pi-dashboard p { margin: 0; }
-.pi-cohort {
-  display: grid;
-  gap: 8px;
-  padding: 20px;
-  color: #fff;
-  background: linear-gradient(112deg, #143b76, #235fb4);
-  border-radius: 16px;
-}
-.pi-cohort h2 { font-size: 21px; line-height: 1.4; }
-.pi-cohort p { color: #e1edff; font-size: 13px; line-height: 1.65; }
-.pi-cohort .pi-product { font-size: 14px; font-weight: 600; }
 .pi-card {
   padding: 16px;
   background: #fff;
