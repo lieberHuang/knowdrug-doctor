@@ -96,7 +96,7 @@ window.PatientInsights = (() => {
     const leading=ranked[0];
     root.innerHTML=`<div class="pi-dashboard">
       <section class="pi-cohort" aria-labelledby="pi-cohort-title">
-        <div class="pi-cohort-top"><span>日达仙</span><span class="pi-data-label">示例数据</span></div>
+        <div class="pi-cohort-top"><span>日达仙</span></div>
         <h2 id="pi-cohort-title">创新支付入组概况</h2>
         <p class="pi-cohort-total"><strong>${patients.length}</strong><span>人累计入组</span></p>
         <div class="pi-cohort-breakdown"><span>在组 <b>${active}</b> 人</span><span>已结项 <b>${patients.length-active}</b> 人</span></div>
@@ -132,7 +132,7 @@ window.PatientInsights = (() => {
         <div class="pi-segments" role="group" aria-label="入组状态">${[['all','全部'],['active','在组'],['ended','已结项']].map(([value,label])=>`<button type="button" data-pi-status="${value}" aria-pressed="${status===value}">${label}</button>`).join('')}</div>
         ${patientRows(questions)}
       </section>
-      <details class="pi-method"><summary>数据口径</summary><p>本页为合成示例数据，仅展示创新支付入组人群及其单药品智能体提问。提问患者按匿名编号去重，主题占比按所选时段内提问次数计算。时间按北京时间统计，包含当天。</p></details>
+      <details class="pi-method"><summary>数据口径</summary><p>统计范围为创新支付入组人群及其单药品智能体提问。提问患者按匿名编号去重，主题占比按所选时段内提问次数计算。时间按北京时间统计，包含当天。</p></details>
     </div>`;
     const dashboard=root.querySelector('.pi-dashboard');
     dashboard.addEventListener('click',event=>{

@@ -31,7 +31,6 @@ body[data-meeting-role="doctor"] .bottom-nav {
   gap: 9px;
 }
 .pi-cohort-top { margin-bottom: 13px; font-size: 13px; color: #d9e9ff; }
-.pi-data-label { border: 1px solid #a6c7f2; border-radius: 5px; padding: 2px 6px; font-size: 11px; }
 .pi-dashboard .pi-cohort-total { display: flex; align-items: baseline; gap: 7px; margin: 5px 0 12px; }
 .pi-cohort-total strong { font-size: 40px; line-height: 1.22; font-variant-numeric: tabular-nums; }
 .pi-cohort-total span, .pi-cohort-breakdown { font-size: 13px; color: #e0edff; }
