@@ -5,7 +5,11 @@ const KEY='knowdrug-meetings-v1', CHANNEL='knowdrug-meeting-v1';
 const DOCTOR_ORIGIN='https://medlink-doctor-jh1029.f4rb8jrv26.chatgpt.site';
 const REP_ORIGIN='https://knowdrug-representative-jh1029.f4rb8jrv26.chatgpt.site';
 const local=['localhost','127.0.0.1'].includes(location.hostname);
-const ownerOrigin=local?location.protocol+'//'+location.hostname+':8080':DOCTOR_ORIGIN;
+// GitHub Pages project URLs share an origin and browser storage.
+const pages = location.hostname === 'lieberhuang.github.io' &&
+ /^\/knowdrug-(doctor|representative)(?:\/|$)/.test(location.pathname);
+const ownerOrigin=pages?location.origin:local?location.protocol+'//'+location.hostname+':8080':DOCTOR_ORIGIN;
+const representativeActions=['snapshot','send','create','recap'];
 const bridgeMode=document.documentElement.hasAttribute('data-meeting-bridge');
 const owner=bridgeMode||document.body?.dataset.meetingRole==='doctor';
 const doctors=[['d1','张医生','心血管内科','仁和医院'],['d2','李医生','内分泌科','江城中心医院'],['d3','王医生','心血管内科','滨江医院'],['d4','陈医生','全科医学科','仁和医院'],['d5','刘医生','心血管内科','江城中心医院'],['d6','赵医生','内分泌科','滨江医院'],['d7','周医生','全科医学科','仁和医院'],['d8','吴医生','心血管内科','滨江医院'],['d9','郑医生','内分泌科','江城中心医院'],['d10','孙医生','全科医学科','仁和医院'],['d11','许医生','心血管内科','滨江医院'],['d12','林医生','内分泌科','江城中心医院']].map(([id,name,department,hospital])=>({id,name,department,hospital}));
@@ -130,7 +134,7 @@ if(bridgeMode){
  const allowed=[REP_ORIGIN];if(local)allowed.push(location.protocol+'//'+location.hostname+':8081');
  window.addEventListener('message',e=>{
   const p=e.data;if(e.source!==parent||!allowed.includes(e.origin)||p?.channel!==CHANNEL||typeof p.id!=='string')return;
-  try{if(!['snapshot','send','create','recap'].includes(p.op))throw Error('操作未获授权');e.source.postMessage({channel:CHANNEL,id:p.id,result:action(p.op,p.args)},e.origin);}catch(err){e.source.postMessage({channel:CHANNEL,id:p.id,error:err.message},e.origin);}
+  try{if(!representativeActions.includes(p.op))throw Error('操作未获授权');e.source.postMessage({channel:CHANNEL,id:p.id,result:action(p.op,p.args)},e.origin);}catch(err){e.source.postMessage({channel:CHANNEL,id:p.id,error:err.message},e.origin);}
  });return;
 }
 let frame,seq=0;const pending=new Map();
@@ -144,5 +148,13 @@ function remote(op,args){
  });
 }
 window.addEventListener('message',e=>{if(e.origin!==ownerOrigin||e.source!==frame?.contentWindow||e.data?.channel!==CHANNEL)return;const p=pending.get(e.data.id);if(!p)return;pending.delete(e.data.id);clearTimeout(p.timer);if(e.data.error)p.reject(Error(e.data.error));else p.resolve(e.data.result);});
-window.MeetingHub={request:async(op,args)=>owner?action(op,args):remote(op,args),ownerOrigin};
+window.MeetingHub={
+ async request(op,args){
+  if(owner)return action(op,args);
+  if(!pages)return remote(op,args);
+  if(!representativeActions.includes(op))throw Error('操作未获授权');
+  return action(op,args);
+ },
+ ownerOrigin
+};
 })();
