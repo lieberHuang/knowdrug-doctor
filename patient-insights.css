@@ -6,96 +6,47 @@ body[data-meeting-role="doctor"] .bottom-nav {
 @media (max-width: 360px) { .bottom-nav .tab-item { font-size: 11px; } }
 
 .pi-dashboard {
-  --pi-ink: #19345b;
-  --pi-muted: #586f8e;
-  --pi-line: #e4edf9;
-  --pi-blue: #2866cc;
   display: grid;
-  gap: 15px;
-  color: var(--pi-ink);
+  gap: 13px;
+  color: #19345b;
   padding-bottom: 8px;
 }
-.pi-dashboard h2, .pi-dashboard h3, .pi-dashboard p, .pi-dashboard dl, .pi-dashboard dd { margin: 0; }
-.pi-dashboard h2 { font-size: 17px; line-height: 1.4; }
-.pi-dashboard h3 { font-size: 14px; }
+.pi-dashboard h2, .pi-dashboard h3, .pi-dashboard p { margin: 0; }
 .pi-cohort {
-  padding: 18px 18px 16px;
+  display: grid;
+  gap: 8px;
+  padding: 20px;
   color: #fff;
   background: linear-gradient(112deg, #143b76, #235fb4);
-  border-radius: 17px;
+  border-radius: 16px;
 }
-.pi-cohort-top, .pi-card-title, .pi-topic-label, .pi-patient summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 9px;
+.pi-cohort h2 { font-size: 21px; line-height: 1.4; }
+.pi-cohort p { color: #e1edff; font-size: 13px; line-height: 1.65; }
+.pi-cohort .pi-product { font-size: 14px; font-weight: 600; }
+.pi-card {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #e4edf9;
+  border-radius: 14px;
 }
-.pi-cohort-top { margin-bottom: 13px; font-size: 13px; color: #d9e9ff; }
-.pi-dashboard .pi-cohort-total { display: flex; align-items: baseline; gap: 7px; margin: 5px 0 12px; }
-.pi-cohort-total strong { font-size: 40px; line-height: 1.22; font-variant-numeric: tabular-nums; }
-.pi-cohort-total span, .pi-cohort-breakdown { font-size: 13px; color: #e0edff; }
-.pi-cohort-breakdown { display: flex; gap: 20px; padding-top: 10px; border-top: 1px solid #ffffff42; }
-.pi-cohort-breakdown b { color: #fff; }
-.pi-card { padding: 16px; background: #fff; border: 1px solid var(--pi-line); border-radius: 15px; min-width: 0; }
-.pi-muted, .pi-questions small, .pi-patient small { color: var(--pi-muted); font-size: 12px; }
-.pi-segments { display: flex; gap: 4px; background: #eff4fc; border-radius: 9px; padding: 3px; margin-top: 12px; }
-.pi-segments button {
-  flex: 1;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--pi-muted);
-  font-size: 13px;
-  min-height: 38px;
-}
-.pi-segments button[aria-pressed="true"] { color: #2059b4; background: #fff; font-weight: 650; }
-.pi-dashboard .pi-date-range { margin: 10px 0 12px; }
-.pi-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
-.pi-metrics > div { border-left: 1px solid var(--pi-line); padding-left: 10px; }
-.pi-metrics > div:first-child { border-left: 0; padding-left: 0; }
-.pi-metrics dt { color: var(--pi-muted); font-size: 12px; }
-.pi-metrics dd { font-size: 23px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.pi-metrics small { color: var(--pi-muted); font-size: 12px; font-weight: 400; }
-.pi-chart-title { margin: 16px 0 8px; padding-top: 12px; border-top: 1px solid var(--pi-line); }
-.pi-chart { display: flex; gap: 4px; }
-.pi-chart-column { flex: 1; min-width: 0; text-align: center; font-variant-numeric: tabular-nums; }
-.pi-chart-column b, .pi-chart-column span { display: block; font-size: 11px; color: var(--pi-muted); }
-.pi-chart-track { height: 50px; display: flex; align-items: end; justify-content: center; margin: 3px 0 4px; border-bottom: 1px solid var(--pi-line); }
-.pi-chart-track i { display: block; width: min(17px, 60%); height: var(--height); background: #548ae0; border-radius: 4px 4px 0 0; }
-.pi-dashboard .pi-summary {
-  margin: 12px 0 6px;
-  padding: 9px 11px;
+.pi-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: #2866cc;
   background: #edf4ff;
-  border-radius: 7px;
-  font-size: 13px;
-  line-height: 1.6;
+  border-radius: 9px;
 }
-.pi-summary strong { color: #2059b4; }
-.pi-topics { display: grid; gap: 1px; }
-.pi-topic { display: block; text-align: left; width: 100%; background: transparent; border: 0; border-radius: 7px; padding: 8px 5px; color: var(--pi-ink); min-height: 46px; }
-.pi-topic[aria-pressed="true"] { background: #edf4ff; }
-.pi-topic-label { font-size: 13px; }
-.pi-topic-label span { color: var(--pi-muted); font-size: 12px; }
-.pi-topic-track { display: block; height: 5px; border-radius: 4px; background: #e9f0fc; margin-top: 6px; overflow: hidden; }
-.pi-topic-track i { display: block; height: 100%; width: var(--share); border-radius: 4px; background: var(--pi-blue); }
-.pi-clear, .pi-more { min-height: 40px; color: #2059b4; border: 0; background: transparent; font-size: 13px; padding-inline: 3px; }
-.pi-more { display: block; margin: 4px auto 0; }
-.pi-dashboard .pi-filtered { color: #2059b4; font-size: 13px; margin-top: 5px; }
-.pi-questions, .pi-patient-body ul { margin: 7px 0 0; padding: 0; list-style: none; }
-.pi-questions li, .pi-patient { border-top: 1px solid var(--pi-line); padding: 10px 0; }
-.pi-questions p { font-size: 14px; line-height: 1.55; }
-.pi-questions small { display: block; margin-top: 3px; }
-.pi-dashboard .pi-empty { color: var(--pi-muted); margin-top: 8px; font-size: 13px; }
-.pi-patients { margin-top: 10px; }
-.pi-patient summary { cursor: pointer; min-height: 38px; }
-.pi-patient summary::-webkit-details-marker { display: none; }
-.pi-patient summary small { display: block; margin-top: 4px; }
-.pi-patient-state { color: #2457a5; background: #edf4ff; padding: 4px 7px; font-size: 12px; border-radius: 5px; white-space: nowrap; }
-.pi-patient-state.is-ended { background: #eff2f7; color: #50647d; }
-.pi-patient-state::after { content: " +"; }
-.pi-patient[open] .pi-patient-state::after { content: " −"; }
-.pi-patient-body { margin-top: 8px; padding: 9px 11px; background: #f5f8fd; border-radius: 7px; font-size: 13px; line-height: 1.65; }
-.pi-patient-body li + li { margin-top: 3px; }
-.pi-method { color: var(--pi-muted); padding: 0 4px; font-size: 12px; line-height: 1.6; }
-.pi-method summary { cursor: pointer; min-height: 32px; }
-.pi-dashboard :is(button,summary):focus-visible { outline: 2px solid var(--pi-blue); outline-offset: 2px; }
+.pi-icon svg { width: 19px; height: 19px; }
+.pi-card h3 { font-size: 16px; line-height: 1.45; }
+.pi-card p, .pi-dashboard .pi-empty {
+  color: #425e80;
+  font-size: 14px;
+  line-height: 1.7;
+  margin-top: 5px;
+}
