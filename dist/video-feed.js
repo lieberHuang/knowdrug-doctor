@@ -4,7 +4,7 @@ const VIDEO_FEED = [
     "id": "intro",
     "title": "林晓的专属介绍",
     "representative": "林晓",
-    "poster": "assets/representative.png",
+    "poster": "assets/representative.jpg",
     "src": "assets/feed-intro.mp4",
     "duration": 16.103,
     "captions": [
@@ -30,7 +30,7 @@ const VIDEO_FEED = [
     "id": "reading",
     "title": "日达仙资料怎么查",
     "representative": "林晓",
-    "poster": "assets/representative.png",
+    "poster": "assets/representative.jpg",
     "src": "assets/feed-reading.mp4",
     "duration": 17.0,
     "captions": [
@@ -56,7 +56,7 @@ const VIDEO_FEED = [
     "id": "safety",
     "title": "用药信息核对要点",
     "representative": "林晓",
-    "poster": "assets/representative.png",
+    "poster": "assets/representative.jpg",
     "src": "assets/feed-safety.mp4",
     "duration": 14.527,
     "captions": [
