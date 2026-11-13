@@ -30,7 +30,7 @@ function state(){return history.state||{page:'home'};}
 function commitState(next,replace=false){history[replace?'replaceState':'pushState'](next,'');applyState(next);}
 function closeDialog(dialog){if(dialog.open){ignoredCloses.add(dialog);dialog.close();}}
 function applyState(next){
- const page=Object.hasOwn(pageTitles,next.page)?next.page:'home',changed=page!==currentPage;
+ const page=Object.prototype.hasOwnProperty.call(pageTitles,next.page)?next.page:'home',changed=page!==currentPage;
  currentPage=page;document.body.dataset.page=page;$('#page-subtitle').textContent=pageTitles[page];$('#home-page').hidden=page!=='home';$('#module-page').hidden=page==='home';
  if(changed||page==='history')renderModule(page);
  const composer=page==='home'&&!!next.composer,locked=page!=='home'||composer||!!next.answer||!!next.modal||!!next.drawer;$('#video-feed').inert=locked;$('#video-feed').classList.toggle('feed-locked',locked);$('#ask-banner').hidden=!composer;$('#ask-open').hidden=page!=='home'||composer||!!next.answer||!!next.modal||!!next.drawer;$('#ask-open').setAttribute('aria-expanded',String(composer));$('#profile').setAttribute('aria-expanded',String(!!next.drawer));if(!next.drawer)closeDialog($('#profile-drawer'));else if(!$('#profile-drawer').open)$('#profile-drawer').showModal();
@@ -40,7 +40,7 @@ function applyState(next){
  if(changed)window.scrollTo({top:0,behavior:'instant'});
  updateKeyboard();
 }
-function navigate(page,options={}){if(!Object.hasOwn(pageTitles,page))page='home';stopVoice();if(options.fromHistory)applyState({...options,page});else{if(page===currentPage&&state().drawer){requestClose('drawer');return;}if(page===currentPage&&!state().answer&&!state().modal&&!state().composer&&!state().drawer&&!options.replace)return;commitState({page},!!options.replace||!!state().drawer);}}
+function navigate(page,options={}){if(!Object.prototype.hasOwnProperty.call(pageTitles,page))page='home';stopVoice();if(options.fromHistory)applyState({...options,page});else{if(page===currentPage&&state().drawer){requestClose('drawer');return;}if(page===currentPage&&!state().answer&&!state().modal&&!state().composer&&!state().drawer&&!options.replace)return;commitState({page},!!options.replace||!!state().drawer);}}
 window.addEventListener('popstate',event=>{pendingBack=false;applyState(event.state||{page:'home'});});
 function requestClose(kind){if(kind==='composer')stopVoice();if(state()[kind]){if(!pendingBack){pendingBack=true;history.back();}}else applyState({...state(),[kind]:false});}
 for(const [id,kind] of [['modal','modal'],['answer-sheet','answer'],['profile-drawer','drawer']]){
@@ -86,10 +86,10 @@ function renderAnswers(){
 }
 async function askQuestion(raw){
  const text=String(raw||'').trim();if(!text||answering)return;stopVoice();pauseVideos();
- if(!activeSession){activeSession={id:crypto.randomUUID?.()||String(Date.now()),title:text,time:new Date().toISOString(),messages:[]};sessions.unshift(activeSession);}const session=activeSession;
+ if(!activeSession){activeSession={id:MobileCompat.uuid(),title:text,time:new Date().toISOString(),messages:[]};sessions.unshift(activeSession);}const session=activeSession;
  answering=true;requestSession=session.id;session.messages.push({role:'user',text,videoId:VIDEO_FEED[activeVideo].id});sessions=sessions.slice(0,30);storage.set('sessions',sessions);$('#question').value='';$('#send').disabled=true;
  if(!state().answer)openAnswer();else renderAnswers();$('#answer-content').scrollTop=$('#answer-content').scrollHeight;
- try{await new Promise(resolve=>setTimeout(resolve,650));const answer=answerFor(text);session.messages.push({role:'assistant',answer,followUps:followUps(text)});storage.set('sessions',sessions);}finally{answering=false;requestSession=null;$('#send').disabled=false;if($('#answer-sheet').open&&activeSession?.id===session.id){renderAnswers();const cards=$$('.answer-card',$('#answer-content'));cards.at(-1)?.scrollIntoView?.({behavior:reduceMotion?'instant':'smooth',block:'start'});}if(currentPage==='history')renderModule('history');}
+ try{await new Promise(resolve=>setTimeout(resolve,650));const answer=answerFor(text);session.messages.push({role:'assistant',answer,followUps:followUps(text)});storage.set('sessions',sessions);}finally{answering=false;requestSession=null;$('#send').disabled=false;if($('#answer-sheet').open&&activeSession?.id===session.id){renderAnswers();const cards=$$('.answer-card',$('#answer-content'));cards[cards.length-1]?.scrollIntoView?.({behavior:reduceMotion?'instant':'smooth',block:'start'});}if(currentPage==='history')renderModule('history');}
 }
 function voiceStatus(text){$('#voice-status').textContent=text;$('#voice-status').hidden=!text;}
 function syncVoice(){const button=$('#voice-input');button.classList.toggle('listening',listening);button.setAttribute('aria-pressed',String(listening));button.setAttribute('aria-label',listening?'结束语音输入':'语音输入');$('span',button).textContent=listening?'结束录音':'语音输入';}
@@ -105,7 +105,7 @@ function startVoice(){
  recognition.start();listening=true;syncVoice();voiceStatus('正在聆听，请说出您的问题…');
  }catch{stopVoice();voiceStatus('无法启动语音识别，请重试或使用文字输入');}
 }
-function updateKeyboard(){const vv=window.visualViewport,offset=vv?Math.max(0,innerHeight-vv.height-vv.offsetTop):0,active=state().composer&&offset>100;document.documentElement.style.setProperty('--keyboard-offset',active?offset+'px':'0px');document.body.classList.toggle('keyboard-open',active);}
+function updateKeyboard(){const vv=window.visualViewport,offset=vv&&(!vv.scale||vv.scale<1.05)?Math.max(0,innerHeight-vv.height-vv.offsetTop):0,active=state().composer&&offset>100;document.documentElement.style.setProperty('--keyboard-offset',active?offset+'px':'0px');document.body.classList.toggle('keyboard-open',active);}
 $('#doctor-header').textContent=doctor.name;$('#doctor-avatar').textContent=doctor.name[0];$('#drawer-title').textContent=doctor.name;$('#drawer-avatar').textContent=doctor.name[0];
 $('#profile').onclick=()=>{const wasListening=listening;stopVoice();if(wasListening)voiceStatus($('#question').value.trim()?'可修改识别文字后发送':'语音输入已结束');pauseVideos();if(!state().drawer)commitState({...state(),drawer:true});};$('#drawer-close').onclick=()=>requestClose('drawer');
 $('#ask-open').onclick=()=>{voiceStatus('');openComposer();};$('#ask-close').onclick=()=>requestClose('composer');$('#voice-input').onclick=startVoice;
