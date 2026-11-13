@@ -42,7 +42,7 @@ window.PatientInsights = (() => {
   const formatShare = new Intl.NumberFormat('zh-CN',{style:'percent',maximumFractionDigits:1});
 
   function distributionMarkup(cohort, visibleDimensions) {
-    if(!cohort.length)return '<p class="pi-empty">所选条件下暂无患者分布。</p>';
+    if(!cohort.length)return '<p class="pi-empty">暂无患者分布。</p>';
     return `<div class="pi-chart-grid">${visibleDimensions.map(({id,label,options})=>`
       <div class="pi-chart">
         <h3>${label}</h3>
@@ -60,7 +60,7 @@ window.PatientInsights = (() => {
 
   function resultsMarkup(matching, selectedTopic) {
     const available=topics.filter(topic=>matching.some(record=>record.topic===topic.id));
-    if(!available.length)return '<p class="pi-empty">所选人群暂无相关提问，请调整筛选条件。</p>';
+    if(!available.length)return '<p class="pi-empty">暂无相关提问。</p>';
     const visible=matching.filter(record=>!selectedTopic || record.topic===selectedTopic);
     const unique=[...new Map(visible.map(record=>[record.text,record])).values()];
     const names=new Map(available.map(topic=>[topic.id,topic.label]));
@@ -73,20 +73,11 @@ window.PatientInsights = (() => {
   }
 
   function render(root) {
-    const filters=Object.fromEntries(dimensions.map(({id})=>[id,'']));
     let selectedTopic='';
     let selectedChart='profile';
     root.innerHTML = `<div class="pi-dashboard">
-      <section class="pi-card" aria-labelledby="pi-filter-title">
-        <div class="pi-card-heading"><h2 id="pi-filter-title">筛选人群</h2><button type="button" class="pi-reset" disabled>重置</button></div>
-        <div class="pi-filters">${dimensions.map(({id,label,options})=>`<label for="pi-${id}">${label}
-          <select id="pi-${id}" name="${id}"><option value="">全部</option>
-            ${options.map(option=>`<option>${option}</option>`).join('')}
-          </select>
-        </label>`).join('')}</div>
-      </section>
       <section class="pi-card" aria-labelledby="pi-distribution-title">
-        <div class="pi-card-heading"><h2 id="pi-distribution-title">人群分布</h2><span class="pi-chart-caption">所选人群占比</span></div>
+        <div class="pi-card-heading"><h2 id="pi-distribution-title">人群分布</h2><span class="pi-chart-caption">患者占比</span></div>
         <div class="pi-chart-switch" role="group" aria-label="人群分布维度">
           <button type="button" data-pi-chart="profile" aria-pressed="true">性别与年龄</button>
           <button type="button" data-pi-chart="context" aria-pressed="false">地区与疾病进展</button>
@@ -100,19 +91,15 @@ window.PatientInsights = (() => {
       </section>
     </div>`;
     const panel=root.querySelector('.pi-dashboard');
-    const selects=[...panel.querySelectorAll('select')];
-    const reset=panel.querySelector('.pi-reset');
     const context=panel.querySelector('.pi-context');
     const results=panel.querySelector('.pi-results');
     const distribution=panel.querySelector('.pi-distribution');
     const chartButtons=[...panel.querySelectorAll('[data-pi-chart]')];
 
     function updateResults() {
-      const cohort=patients.filter(patient=>dimensions.every(({id})=>!filters[id] || patient[id]===filters[id]));
+      const cohort=patients;
       const members=new Set(cohort);
-      const active=dimensions.map(({id})=>filters[id]).filter(Boolean);
-      reset.disabled=active.length===0;
-      context.textContent=active.length ? active.join(' · ') : '全部患者';
+      context.textContent='全部患者';
       results.innerHTML=resultsMarkup(records.filter(({patient})=>members.has(patient)),selectedTopic);
       distribution.innerHTML=distributionMarkup(cohort,selectedChart==='profile'?[sex,age]:[region,stage]);
     }
@@ -125,22 +112,6 @@ window.PatientInsights = (() => {
       });
     }
 
-    for(const select of selects){
-      select.addEventListener('change',()=>{
-        filters[select.name]=select.value;
-        selectedTopic='';
-        updateResults();
-      });
-    }
-    reset.addEventListener('click',()=>{
-      for(const select of selects){
-        select.value='';
-        filters[select.name]='';
-      }
-      selectedTopic='';
-      updateResults();
-      selects[0].focus({preventScroll:true});
-    });
     results.addEventListener('click',event=>{
       const button=event.target.closest('[data-pi-topic]');
       if(!button)return;
