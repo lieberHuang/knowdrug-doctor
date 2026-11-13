@@ -2,13 +2,11 @@
 <html lang="zh-CN"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#286ae6"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="description" content="医伴 MedLink，您的掌上日达仙学术助手。">
-<title>医伴 MedLink</title><link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="mobile.css?v=20261113-clean"><link rel="stylesheet" href="cases.css?v=20261029-cases1"><link rel="stylesheet" href="patient-insights.css?v=20261113-clean"></head>
+<title>医伴 MedLink</title><link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="mobile.css?v=20261113-core"><link rel="stylesheet" href="patient-insights.css?v=20261113-clean"></head>
 <body data-page="home"><svg class="svg-defs" xmlns="http://www.w3.org/2000/svg"><defs>
 <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></symbol>
 <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2V11.5A8.5 8.5 0 0 1 10.5 3h2A8.5 8.5 0 0 1 21 11.5Z"/><path d="M7 10h9M7 14h6"/></symbol>
-<symbol id="i-case" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2h6v2M9 10h6M9 14h6M9 18h3"/></symbol>
 <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 5C8 2 3 3 3 3v16s5-1 9 2c4-3 9-2 9-2V3s-5-1-9 2Zm0 0v16"/></symbol>
-<symbol id="i-paper" viewBox="0 0 24 24"><path d="M14 2H5v20h14V7Zm0 0v6h5M8 12h8M8 16h8M8 19h5"/></symbol>
 <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></symbol>
 <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/></symbol>
 <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
@@ -32,8 +30,8 @@
  <div class="greeting"><div><h1><span id="doctor-greeting">张医生</span>，<span id="greeting-time">您好</span></h1></div><span class="greeting-decoration"><svg><use href="#i-spark"/></svg></span></div>
  <section class="welcome-hero" id="welcome-hero" aria-label="专属医药代表欢迎视频">
   <div class="hero-visual"><img src="assets/representative.png" alt="您的专属医药代表林晓"><div class="portrait-shade"></div><div class="digital-tag"><span class="live-dot"></span>AI 数字人</div><div class="speaking-indicator" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-   <button class="hero-play" id="play-welcome"><span class="play-disc"><span class="play-triangle"></span></span><span id="play-label">播放专属介绍</span><span class="video-duration">00:21</span></button>
-   <div class="video-caption" id="video-caption" hidden></div><div class="video-controls"><button id="video-toggle" aria-label="播放欢迎介绍">▶</button><span id="video-time">00:00</span><input type="range" id="video-progress" min="0" max="100" value="0" aria-label="视频进度"><span id="video-total">00:21</span><button id="mute" aria-label="静音">♪</button><button id="collapse-video" aria-label="收起视频">⌃</button></div>
+   <button class="hero-play" id="play-welcome"><span class="play-disc"><span class="play-triangle"></span></span><span id="play-label">播放专属介绍</span><span class="video-duration">00:17</span></button>
+   <div class="video-caption" id="video-caption" hidden></div><div class="video-controls"><button id="video-toggle" aria-label="播放欢迎介绍">▶</button><span id="video-time">00:00</span><input type="range" id="video-progress" min="0" max="100" value="0" aria-label="视频进度"><span id="video-total">00:17</span><button id="mute" aria-label="静音">♪</button><button id="collapse-video" aria-label="收起视频">⌃</button></div>
   </div>
   <div class="representative-footer"><img class="rep-avatar" src="assets/representative.png" alt=""><div><strong>林晓</strong></div></div>
  </section>
@@ -41,26 +39,22 @@
  <section class="agent-panel" id="agent-panel" aria-labelledby="knowdrug-title">
   <header class="agent-heading"><img class="agent-logo" src="assets/representative.png" alt="数字人林晓"><h2 id="knowdrug-title">knowdrug 知药-医生版</h2><button class="icon-btn reset-conversation" id="new-question" aria-label="新建对话"><svg><use href="#i-chat"/></svg></button></header>
   <div class="tool-grid feature-grid" aria-label="知药功能">
-  <button class="tool-card" data-page="case"><span class="tool-icon"><svg><use href="#i-case"/></svg></span><div><h3>病历点评</h3></div></button>
   <button class="tool-card" data-page="guides"><span class="tool-icon blue"><svg><use href="#i-book"/></svg></span><div><h3>相关指南</h3></div></button>
-  <button class="tool-card" data-page="papers"><span class="tool-icon violet"><svg><use href="#i-paper"/></svg></span><div><h3>最新文献</h3></div></button>
  </div>
   <header class="agent-top"><div class="drug-identity"><span class="drug-icon"><svg><use href="#i-pill"/></svg></span><div><h2>日达仙</h2></div></div><button class="text-button" id="drug-info">药品资料 <span>›</span></button></header>
   <div id="chat-content"><div class="agent-welcome" id="agent-welcome"><div class="question-group"><div class="question-label">常用问题 <button id="refresh-questions">换一换 ↻</button></div><div class="suggestions" id="suggestions"></div></div></div><div class="messages" id="messages" aria-live="polite"></div></div>
   <div class="composer-wrap"><form class="composer" id="chat-form"><label class="sr-only" for="question">药品问题</label><textarea id="question" rows="2" placeholder="想了解什么？问问药品助手" maxlength="2000" enterkeyhint="enter"></textarea><div class="composer-bottom"><button class="send-button" id="send" type="submit" aria-label="发送问题">发送</button></div></form></div>
  </section>
-
 </section>
 <section id="module-page" class="page" hidden></section>
 </main>
 <nav class="bottom-nav" aria-label="主导航">
  <button class="tab-item active" data-page="home"><svg><use href="#i-grid"/></svg><span>首页</span></button>
  <button class="tab-item" data-page="academic"><svg><use href="#i-book"/></svg><span>学术</span></button>
-
  <button class="tab-item" data-page="patientInsights"><svg aria-hidden="true"><use href="#i-insights"/></svg><span>患者洞察</span></button>
  <button class="tab-item" data-page="mine"><svg><use href="#i-user"/></svg><span>我的</span></button>
 </nav>
 </div>
 <dialog id="modal" aria-labelledby="modal-title"><div class="modal-top"><h2 id="modal-title"></h2><button id="modal-close" class="icon-btn" aria-label="关闭">×</button></div><div id="modal-content"></div></dialog><div id="toast" role="status"></div>
-<audio id="welcome-audio" preload="metadata" src="assets/welcome.m4a"></audio><script src="cases.js?v=20261029-cases1"></script><script src="patient-insights.js?v=20261110-distribution"></script><script src="app.js?v=20261113-clean"></script>
+<audio id="welcome-audio" preload="metadata" src="assets/welcome.m4a?v=20261113-core"></audio><script src="patient-insights.js?v=20261110-distribution"></script><script src="app.js?v=20261113-core"></script>
 </body></html>
