@@ -1,6 +1,10 @@
 {
   "name": "knowdrug-doctor",
   "private": true,
-  "scripts": {"test": "node tests/video-feed.test.cjs"},
-  "devDependencies": {"jsdom": "31.0.0"}
+  "scripts": {
+    "test": "node tests/mobile-compat.test.cjs && node tests/video-feed.test.cjs && node tests/video-feed.test.cjs --legacy-dialogs"
+  },
+  "devDependencies": {
+    "jsdom": "31.0.0"
+  }
 }
