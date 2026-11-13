@@ -1,217 +1,135 @@
-/* MedLink: dependency-free interaction prototype. Medical data is explicitly illustrative. */
-history.scrollRestoration = 'manual';
-window.scrollTo(0, 0);
-const $ = (q, root = document) => root.querySelector(q);
-const $$ = (q, root = document) => [...root.querySelectorAll(q)];
-const icon = name => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
-const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const storage = { get(key, fallback) { try { return JSON.parse(localStorage.getItem('medlink-'+key)) ?? fallback; } catch { return fallback; } }, set(key, value) { try { localStorage.setItem('medlink-'+key, JSON.stringify(value)); } catch {} } };
-let doctor = storage.get('doctor', {name:'张医生',department:'心血管内科',hospital:'医伴学术中心'});
-if (doctor.hospital === '医伴示范医院') doctor.hospital = '医伴学术中心';
-// Upgrade persisted sample content without discarding conversations or notes.
-function migrateDrugCopy(value){
- if(typeof value==='string')return [["\u745e\u8212\u4f10\u4ed6\u6c40\u9499\u7247","日达仙"],["\u745e\u8212\u4f10\u4ed6\u6c40","日达仙"],["\u4ed6\u6c40\u7c7b","日达仙药品资料"],["\u8840\u8102\u7ba1\u7406","日达仙资料"],["\u964d\u8102\u6cbb\u7597","日达仙相关研究"],["\u964d\u8102\u76f8\u5173\u836f\u7269","日达仙"],["\u964d\u8102\u76f8\u5173","日达仙相关"],["\u964d\u8102","日达仙"],["\u8840\u8102","药品"],["\u4ed6\u6c40","日达仙"]].reduce((text,[oldName,newName])=>text.split(oldName).join(newName),value);
- if(Array.isArray(value))return value.map(migrateDrugCopy);
- if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,item])=>[key,migrateDrugCopy(item)]));
- return value;
+/* Browser-local doctor experience. Videos use portrait motion with generated narration. */
+const $=(selector,root=document)=>root.querySelector(selector);
+const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
+const icon=name=>`<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const storage={get(key,fallback){try{return JSON.parse(localStorage.getItem('medlink-'+key))??fallback;}catch{return fallback;}},set(key,value){try{localStorage.setItem('medlink-'+key,JSON.stringify(value));return true;}catch{toast('历史记录未保存，请检查浏览器存储空间');return false;}}};
+let doctor=storage.get('doctor',{name:'张医生',department:'心血管内科',hospital:'医伴学术中心'});
+if(doctor.hospital==='医伴示范医院')doctor.hospital='医伴学术中心';
+let sessions=storage.get('sessions',[]),activeSession=null,currentPage='home',answering=false,requestSession=null;
+let activeVideo=0,muted=true,feedObserver,toastTimer,recognition=null,voiceEpoch=0,listening=false;
+let pendingBack=false;const ignoredCloses=new WeakSet();
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const pageTitles={home:'首页',patientInsights:'患者洞察',mine:'我的',history:'问答记录'};
+const timeLabel=value=>{const s=Number.isFinite(value)?Math.max(0,Math.floor(value)):0;return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;};
+function toast(message){$('#toast').textContent=message;$('#toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),3000);}
+function answerFor(question){
+ if(/支付|保险|申请|理赔|权益/.test(question))return {title:'创新支付资料核对',body:'可先核对具体服务规则、申请条件与材料清单，再梳理提交方式、审核进度与需要补充的资料。\n\n具体权益与服务结果需结合实际规则和审核反馈确认。',page:'drug',action:'查看药品资料'};
+ if(/指南|文献|研究|循证/.test(question))return {title:'循证资料的阅读路径',body:'可以先明确临床问题，再核对资料来源、研究人群、结果与适用范围。\n\n阅读时记录原文出处、发表时间和资料版本，便于查阅与复核。',page:'drug',action:'查看药品资料'};
+ if(/相互作用|合用|联合/.test(question))return {title:'药物相互作用资料核对',body:'先确认完整的合并用药信息，包括处方药、非处方药与补充剂，再查阅具体产品的获批说明书。\n\n可逐项记录资料来源、相关提示和限制条件。具体用药组合需结合患者背景，由医生进行专业评估。',page:'drug',action:'查看药品资料'};
+ if(/剂量|用法|用量|特殊|人群|治疗|不良|反应|安全/.test(question))return {title:'日达仙用药资料核对要点',body:'请先核对具体产品的获批说明书及版本，再按问题查阅用法用量、注意事项、不良反应、特殊人群或相互作用条目。\n\n具体用药信息需以获批说明书为准，并结合患者背景核对相应资料。',page:'drug',action:'查看药品资料'};
+ if(/代表|联系/.test(question))return {title:'与您的专属代表交流',body:'您可以在视频下方点击“联系我”，或从“我的”联系专属代表。\n\n也可以先整理您需要的资料名称、关注问题与原文出处，方便后续交流。',page:'contact',action:'联系我'};
+ if(!/药|日达仙|阅读|资料|信息|你好|您好/.test(question))return {title:'我专注于日达仙相关资料',body:'您可以询问药品资料的查阅方式、用药信息核对要点与相关研究的阅读问题。',page:'drug',action:'查看药品资料'};
+ return {title:'日达仙资料阅读清单',body:'可以按“药品基本信息 → 获批说明书 → 注意事项 → 关联证据”依次查阅。\n\n重点核对适应症、用法用量、禁忌、注意事项及相互作用，并保留资料版本与出处。',page:'drug',action:'查看药品资料'};
 }
-let sessions = migrateDrugCopy(storage.get('sessions', []));
-let favorites = storage.get('favorites', []);
-let activeSession = null;
-let currentPage = 'home';
-let pageContext = {};
-let questionBatch = 0;
-let answering = false;
-
-const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-let toastTimer;
-let afterModalClose=null;
-function finishModalAction(){const action=afterModalClose;afterModalClose=null;if(action)action();}
-function closeModalThen(action){afterModalClose=action;$('#modal').close();}
-function toast(message) { $('#toast').textContent = message; $('#toast').classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').classList.remove('show'), 3200); }
-function showModal(title, html) { $('#welcome-audio').pause(); $('#modal').classList.remove('call-sheet'); $('#modal-title').textContent = title; $('#modal-content').innerHTML = html; openPopup(); }
-function openPopup(){if(!$('#modal').open){history.pushState({...history.state,modal:true},'');$('#modal').showModal();}}
-$('#modal').addEventListener('close',()=>{if(history.state?.modal)history.back();else finishModalAction();});
-let sheetTouchStart=null;
-$('#modal').addEventListener('touchstart',event=>{sheetTouchStart=$('#modal').scrollTop<=0?event.touches[0].clientY:null;},{passive:true});
-$('#modal').addEventListener('touchend',event=>{if(sheetTouchStart!==null&&event.changedTouches[0].clientY-sheetTouchStart>90)$('#modal').close();sheetTouchStart=null;},{passive:true});
-$('#modal-close').onclick = () => $('#modal').close();
-$('#modal').addEventListener('click', e => { if(e.target === $('#modal')) { const r = e.target.getBoundingClientRect(); if(e.clientX<r.left || e.clientX>r.right || e.clientY<r.top || e.clientY>r.bottom) e.target.close(); } });
-const date = new Date();
-const hour = Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Shanghai',hour:'numeric',hour12:false}).format(date));
-$('#greeting-time').textContent = hour<11?'上午好':hour<14?'中午好':hour<18?'下午好':'晚上好';
-function updateDoctor() { $('#doctor-header').textContent = doctor.name; $('#doctor-greeting').textContent = doctor.name; $('.avatar').textContent = doctor.name.slice(0,1); }
-updateDoctor();
-const questions = [
- ['日达仙的药品资料有哪些？','如何查阅用法用量与注意事项？','有哪些需要关注的药物相互作用？','有哪些相关的指南与研究可以参考？'],
- ['特殊人群用药需要核对哪些信息？','如何了解药品的不良反应？','开始治疗前应关注哪些资料？','可以帮我梳理一份药品阅读清单吗？'],
- ['如何查阅日达仙相关的指南与资料？','如何解读一篇药品临床研究？','如何核对药品资料的版本与出处？','怎样向医药代表申请更多学术资料？']
-];
-function renderQuestions() { $('#suggestions').innerHTML = questions[questionBatch].map(q=>`<button type="button">${escapeHtml(q)}</button>`).join(''); $$('#suggestions button').forEach(b => b.onclick = () => askQuestion(b.textContent)); }
-renderQuestions();
-$('#refresh-questions').onclick = () => { questionBatch=(questionBatch+1)%questions.length; renderQuestions(); };
-
-// Welcome media: AI portrait + Chinese narrated introduction, with real audio timing.
-const audio = $('#welcome-audio');
-const captions = [
- [
-  0,
-  "医生，您好。我是您的专属医药代表林晓。"
- ],
- [
-  3.907,
-  "很高兴在知药与您见面。"
- ],
- [
-  6.181,
-  "我会为您提供日达仙药品资料与学术支持。"
- ],
- [
-  10.018,
-  "在这里，您可以向药品助手提问，也可以查看相关指南。"
- ],
- [
-  15.267,
-  "让我们从您关心的问题开始吧。"
- ]
-];
-const timeLabel = t => `${String(Math.floor((t||0)/60)).padStart(2,'0')}:${String(Math.floor((t||0)%60)).padStart(2,'0')}`;
-function syncAudio() { const playing = !audio.paused; $('#home-page').classList.toggle('is-playing',playing); $('#play-label').textContent = playing?'暂停专属介绍':audio.currentTime>0?'继续播放专属介绍':'播放我的专属介绍'; $('#video-toggle').textContent = playing?'Ⅱ':'▶'; $('#video-toggle').setAttribute('aria-label',playing?'暂停欢迎介绍':'播放欢迎介绍'); $('#video-caption').hidden = !playing; }
-async function toggleAudio() { if(!audio.paused) audio.pause(); else { try { await audio.play(); } catch { toast('音频暂时无法播放，请稍后重试。'); } } syncAudio(); }
-$('#play-welcome').onclick=toggleAudio; $('#video-toggle').onclick=toggleAudio;
-audio.addEventListener('loadedmetadata',()=>{ $('#video-total').textContent=timeLabel(audio.duration); $('.video-duration').textContent=timeLabel(audio.duration); });
-audio.addEventListener('timeupdate',()=>{ $('#video-time').textContent=timeLabel(audio.currentTime); $('#video-progress').value=audio.duration?audio.currentTime/audio.duration*100:0; const caption=[...captions].reverse().find(([start])=>audio.currentTime>=start); const subtitle=(caption?.[1]||'').replace('张医生',doctor.name);const captionEl=$('#video-caption');if(captionEl.textContent!==subtitle){captionEl.textContent=subtitle;captionEl.classList.remove('caption-reveal');void captionEl.offsetWidth;captionEl.classList.add('caption-reveal');} });
-audio.addEventListener('ended',()=>{syncAudio();$('#play-label').textContent='重新播放专属介绍';});
-audio.addEventListener('pause',syncAudio); audio.addEventListener('play',syncAudio);
-$('#video-progress').oninput = e => {if(Number.isFinite(audio.duration)) audio.currentTime=Number(e.target.value)/100*audio.duration;};
-$('#mute').onclick=()=>{audio.muted=!audio.muted;$('#mute').textContent=audio.muted?'♩':'♪';$('#mute').setAttribute('aria-label',audio.muted?'取消静音':'静音');toast(audio.muted?'已静音':'已开启声音');};
-// Keep the video folded during reading and restore it when the doctor returns to the top.
-let ignoreWelcomeScroll=false;
-let lastWelcomeScrollY=window.scrollY;
-let welcomeTouchY=null;
-function settleWelcomeScroll(){
- requestAnimationFrame(()=>requestAnimationFrame(()=>{lastWelcomeScrollY=window.scrollY;ignoreWelcomeScroll=false;}));
+function followUps(question){const candidates=/支付|保险|申请|权益/.test(question)?['申请材料需要核对哪些内容？','如何整理服务进度的核对清单？','服务权益应如何确认？','材料不齐时需要补充什么？']:/指南|研究|文献|循证/.test(question)?['如何核对资料的原始出处？','如何判断研究人群是否适用？','如何记录资料版本和阅读要点？','研究结果不同应如何梳理？']:['合并用药需要核对哪些资料？','如何核对特殊人群的说明书条目？','日达仙资料版本与出处怎么核对？','用药安全有哪些资料核对要点？'];return candidates.filter(item=>item!==question).slice(0,3);}
+// Refresh old assistant actions while preserving the doctor's own questions.
+if(!Array.isArray(sessions))sessions=[];
+if(storage.get('content-version',0)<7){sessions=sessions.filter(session=>Array.isArray(session.messages));for(const session of sessions){let question='';for(const message of session.messages){if(message.role==='user')question=message.text||'';else if(message.role==='assistant'){message.answer=answerFor(question);message.followUps=followUps(question);}}}storage.set('sessions',sessions);storage.set('content-version',7);}
+function state(){return history.state||{page:'home'};}
+function commitState(next,replace=false){history[replace?'replaceState':'pushState'](next,'');applyState(next);}
+function closeDialog(dialog){if(dialog.open){ignoredCloses.add(dialog);dialog.close();}}
+function applyState(next){
+ const page=Object.hasOwn(pageTitles,next.page)?next.page:'home',changed=page!==currentPage;
+ currentPage=page;document.body.dataset.page=page;$('#page-subtitle').textContent=pageTitles[page];$('#home-page').hidden=page!=='home';$('#module-page').hidden=page==='home';
+ $$('.tab-item').forEach(tab=>{const on=tab.dataset.page===(page==='history'?'mine':page);tab.classList.toggle('active',on);tab.setAttribute('aria-current',on?'page':'false');});
+ if(changed||page==='history')renderModule(page);
+ const composer=page==='home'&&!!next.composer,locked=page!=='home'||composer||!!next.answer||!!next.modal;$('#video-feed').inert=locked;$('#video-feed').classList.toggle('feed-locked',locked);$('#ask-banner').hidden=!composer;$('#ask-open').hidden=page!=='home'||composer||!!next.answer||!!next.modal;$('#ask-open').setAttribute('aria-expanded',String(composer));
+ if(!next.modal)closeDialog($('#modal'));else if(!$('#modal').open)$('#modal').showModal();
+ if(!next.answer)closeDialog($('#answer-sheet'));else{if(next.sessionId){const saved=sessions.find(session=>session.id===next.sessionId);if(saved)activeSession=saved;}renderAnswers();if(!$('#answer-sheet').open)$('#answer-sheet').showModal();}
+ if(page!=='home'||composer||next.answer||next.modal){pauseVideos();if(!composer)stopVoice();}else playActiveVideo();
+ if(changed)window.scrollTo({top:0,behavior:'instant'});
+ updateKeyboard();
 }
-function collapseWelcome(){
- if($('#home-page').classList.contains('collapsed'))return;
- ignoreWelcomeScroll=true;
- const before=$('#agent-panel').getBoundingClientRect().top;
- $('#home-page').classList.add('collapsed');$('#welcome-hero').inert=true;$('#welcome-hero').setAttribute('aria-hidden','true');$('#compact-welcome').hidden=false;audio.pause();
- const after=$('#agent-panel').getBoundingClientRect().top;
- if(window.scrollY>100)window.scrollBy({top:after-before,behavior:'instant'});
- settleWelcomeScroll();
+function navigate(page,options={}){if(!Object.hasOwn(pageTitles,page))page='home';stopVoice();if(options.fromHistory)applyState({...options,page});else{if(page===currentPage&&!state().answer&&!state().modal&&!state().composer&&!options.replace)return;commitState({page},!!options.replace);}}
+window.addEventListener('popstate',event=>{pendingBack=false;applyState(event.state||{page:'home'});});
+function requestClose(kind){if(kind==='composer')stopVoice();if(state()[kind]){if(!pendingBack){pendingBack=true;history.back();}}else applyState({...state(),[kind]:false});}
+for(const [id,kind] of [['modal','modal'],['answer-sheet','answer']]){
+ const dialog=$('#'+id);dialog.addEventListener('cancel',event=>{event.preventDefault();requestClose(kind);});
+ dialog.addEventListener('close',()=>{if(ignoredCloses.has(dialog)){ignoredCloses.delete(dialog);return;}if(state()[kind])requestClose(kind);});
+ dialog.addEventListener('click',event=>{if(event.target!==dialog)return;const box=dialog.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)requestClose(kind);});
 }
-function expandWelcome(){
- if(!$('#home-page').classList.contains('collapsed'))return;
- ignoreWelcomeScroll=true;
- $('#home-page').classList.remove('collapsed');$('#welcome-hero').inert=false;$('#welcome-hero').removeAttribute('aria-hidden');$('#compact-welcome').hidden=true;
- window.scrollTo({top:0,behavior:'instant'});settleWelcomeScroll();
+let sheetStart=null;
+$('.answer-sheet-head').addEventListener('touchstart',event=>{sheetStart=event.touches[0].clientY;},{passive:true});
+$('.answer-sheet-head').addEventListener('touchend',event=>{if(sheetStart!==null&&event.changedTouches[0].clientY-sheetStart>95)requestClose('answer');sheetStart=null;},{passive:true});
+function showModal(title,body,call=false){pauseVideos();stopVoice();$('#modal').classList.toggle('call-sheet',call);$('#modal-title').textContent=title;$('#modal-content').innerHTML=body;if(!state().modal)commitState({...state(),modal:true});else applyState(state());}
+function openDialer(){showModal('联系林晓',`<div class="call-person"><img src="assets/representative.png" alt="林晓"><h2>林晓</h2><div class="call-number">138 0000 0000</div></div><div class="call-actions"><button id="cancel-call">取消</button><a href="tel:13800000000">${icon('phone')}呼叫</a></div>`,true);$('#cancel-call').onclick=()=>requestClose('modal');}
+function showDrugInfo(){showModal('日达仙 · 药品资料','<h3>说明书信息</h3><p>药品名称、规格、适应症、用法用量、禁忌、注意事项、不良反应与相互作用。</p><h3>资料核对</h3><p>核对获批说明书及资料版本，保留来源与原文位置。</p>');}
+function renderFeed(){
+ $('#video-feed').innerHTML=VIDEO_FEED.map((clip,index)=>`<article class="feed-slide" data-video-index="${index}" aria-label="${esc(clip.title)}"><video class="feed-media" data-index="${index}" playsinline muted loop preload="${index===0?'metadata':'none'}" poster="${esc(clip.poster)}" src="${esc(clip.src)}" aria-label="${esc(clip.title)}"></video><div class="feed-shade"></div><div class="feed-topline"><span class="feed-digital">AI 数字人</span><div class="feed-pages">${VIDEO_FEED.map((_,i)=>`<button data-feed-to="${i}" aria-label="切换到第 ${i+1} 个视频" class="${i===index?'active':''}"></button>`).join('')}</div></div><button class="video-play" data-toggle-video="${index}" aria-label="播放视频">${icon('play')}</button><div class="feed-story"><div class="feed-representative"><img src="assets/representative.png" alt=""><strong>${esc(clip.representative)}</strong><span>日达仙</span></div><h2>${esc(clip.title)}</h2><p class="feed-caption" data-caption="${index}">${esc(clip.captions[0]?.[1]||'')}</p></div><div class="feed-progress"><label class="sr-only" for="progress-${index}">视频进度</label><input type="range" id="progress-${index}" data-seek="${index}" min="0" max="100" value="0"><div><span data-time="${index}">00:00</span><span>${timeLabel(clip.duration)}</span></div></div><div class="feed-actions"><button data-mute="${index}" aria-label="开启声音">${icon('muted')}</button><button class="feed-contact" data-contact>${icon('phone')}联系我</button></div><p class="feed-media-status" data-media-status="${index}" role="status" hidden></p></article>`).join('');
+ $$('.feed-media').forEach((media,index)=>{media.addEventListener('play',()=>syncVideoState(index));media.addEventListener('pause',()=>syncVideoState(index));media.addEventListener('timeupdate',()=>{const clip=VIDEO_FEED[index],caption=[...clip.captions].reverse().find(([start])=>media.currentTime>=start);$(`[data-caption="${index}"]`).textContent=caption?.[1]||clip.captions[0][1];$(`[data-time="${index}"]`).textContent=timeLabel(media.currentTime);$(`[data-seek="${index}"]`).value=media.duration?String(media.currentTime/media.duration*100):'0';});media.addEventListener('error',()=>{const message=$(`[data-media-status="${index}"]`);message.hidden=false;message.textContent='视频暂时无法播放，请轻触重试或切换下一个视频';syncVideoState(index);});media.addEventListener('click',()=>toggleVideo(index));});
+ if(window.IntersectionObserver){feedObserver=new IntersectionObserver(entries=>{if(currentPage!=='home'||state().composer||state().answer||state().modal)return;const visible=entries.filter(entry=>entry.isIntersecting&&entry.intersectionRatio>=.65).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];if(visible)activateVideo(Number(visible.target.dataset.videoIndex));},{root:$('#video-feed'),threshold:[.65,.85]});$$('.feed-slide').forEach(slide=>feedObserver.observe(slide));}
+ let scrolling=false;$('#video-feed').addEventListener('scroll',()=>{if(scrolling)return;scrolling=true;requestAnimationFrame(()=>{scrolling=false;const height=$('#video-feed').clientHeight;if(height>0&&canPlay())activateVideo(Math.round($('#video-feed').scrollTop/height));});},{passive:true});
+ $('#video-feed').addEventListener('keydown',event=>{if(event.target.matches('input,button'))return;if(['ArrowDown','ArrowUp'].includes(event.key)){event.preventDefault();scrollToVideo(activeVideo+(event.key==='ArrowDown'?1:-1));}});
+ syncVideoState(0);
 }
-function restoreWelcomeAtTop(){
- if(currentPage==='home'&&!ignoreWelcomeScroll&&!$('#modal').open&&window.scrollY<=8)expandWelcome();
+function syncVideoState(index){const media=$$('.feed-media')[index],slide=media.closest('.feed-slide');slide.classList.toggle('is-playing',!media.paused);const button=$(`[data-toggle-video="${index}"]`);button.setAttribute('aria-label',media.paused?'播放视频':'暂停视频');button.innerHTML=icon(media.paused?'play':'pause');}
+function pauseVideos(){for(const media of $$('.feed-media'))if(!media.paused)media.pause();}
+function canPlay(){return currentPage==='home'&&!document.hidden&&!state().composer&&!state().answer&&!state().modal;}
+async function playActiveVideo(){if(!canPlay())return;const media=$$('.feed-media')[activeVideo];if(!media)return;media.muted=muted;try{await media.play();}catch{syncVideoState(activeVideo);}}
+function activateVideo(index){if(!Number.isInteger(index)||index<0||index>=VIDEO_FEED.length)return;if(index!==activeVideo){pauseVideos();activeVideo=index;const media=$$('.feed-media')[index];try{media.currentTime=0;}catch{}$$('.feed-slide').forEach((slide,i)=>slide.classList.toggle('is-active',i===index));}$('#feed-position').textContent=`第 ${index+1} 个视频，共 ${VIDEO_FEED.length} 个`;playActiveVideo();}
+function scrollToVideo(index){index=Math.max(0,Math.min(VIDEO_FEED.length-1,index));$('#video-feed').scrollTo({top:index*$('#video-feed').clientHeight,behavior:reduceMotion?'instant':'smooth'});if(!$('#video-feed').clientHeight)activateVideo(index);}
+async function toggleVideo(index){if(index!==activeVideo){activateVideo(index);return;}const media=$$('.feed-media')[index];if(!media.paused){media.pause();return;}try{await media.play();}catch{toast('视频暂时无法播放，请稍后重试');}}
+function toggleMute(){muted=!muted;$$('.feed-media').forEach(media=>media.muted=muted);$$('[data-mute]').forEach(button=>{button.innerHTML=icon(muted?'muted':'volume');button.setAttribute('aria-label',muted?'开启声音':'静音');});playActiveVideo();}
+function renderModule(page){
+ const root=$('#module-page');if(page==='home')return;
+ if(page==='patientInsights'){PatientInsights.render(root);return;}
+ if(page==='mine'){root.innerHTML=`<div class="profile-card"><span class="avatar">${esc(doctor.name[0])}</span><div><h2>${esc(doctor.name)}</h2><p>${esc(doctor.department)}<br>${esc(doctor.hospital)}</p></div></div><div class="profile-links"><button class="profile-row" data-page="history">${icon('clock')}问答记录<span class="row-chevron">›</span></button><button class="profile-row" data-contact>${icon('phone')}我的专属代表<span class="row-chevron">›</span></button></div>`;return;}
+ if(page==='history'){root.innerHTML=`<div class="history-toolbar"><h2>问答记录</h2><button class="text-button" data-new-chat>新建问答</button></div>`+(sessions.length?sessions.map(session=>`<button class="history-row" data-session="${esc(session.id)}"><div><b>${esc(session.title)}</b><small>${new Date(session.time).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})} · ${session.messages.filter(message=>message.role==='user').length} 次提问</small></div>${icon('arrow')}</button>`).join(''):'<div class="empty-state"><h3>暂无问答记录</h3><button class="primary-button" data-new-chat>开始提问</button></div>');}
 }
-$('#collapse-video').onclick=collapseWelcome;
-window.addEventListener('scroll',()=>{
- if(currentPage!=='home'||ignoreWelcomeScroll||$('#modal').open)return;
- const position=Math.max(0,window.scrollY);const scrollingUp=position<lastWelcomeScrollY;lastWelcomeScrollY=position;
- if($('#home-page').classList.contains('collapsed')){if(position<=8&&scrollingUp)expandWelcome();}
- else if($('#welcome-hero').getBoundingClientRect().bottom<125)collapseWelcome();
-},{passive:true});
-// An upward gesture must also work when a short, folded page is already at scroll position zero.
-window.addEventListener('wheel',event=>{if(event.deltaY<0)restoreWelcomeAtTop();},{passive:true});
-window.addEventListener('touchstart',event=>{welcomeTouchY=event.touches[0]?.clientY??null;},{passive:true});
-window.addEventListener('touchmove',event=>{if(welcomeTouchY!==null&&event.touches[0].clientY-welcomeTouchY>24){restoreWelcomeAtTop();welcomeTouchY=null;}},{passive:true});
-window.addEventListener('touchend',()=>{welcomeTouchY=null;},{passive:true});
-
-const pageTitles={patientInsights:'患者洞察',home:'首页',guides:'相关指南',history:'问答记录',favorites:'我的收藏',academic:'学术中心',mine:'我的'};
-history.replaceState({page:'home'},'');
-function navigate(page, options={}) {
- if(!pageTitles[page]) page='home';
- const nextContext=options.context||{};
- const changed=currentPage!==page||JSON.stringify(pageContext)!==JSON.stringify(nextContext);
- currentPage=page;pageContext=nextContext;document.body.dataset.page=page;
- $('#page-subtitle').textContent=pageTitles[page];
- const selected=page==='guides'?'academic':['history','favorites'].includes(page)?'mine':page;
- $$('.tab-item').forEach(b=>{b.classList.toggle('active',b.dataset.page===selected);b.setAttribute('aria-current',b.dataset.page===selected?'page':'false');});
- $('#home-page').hidden=page!=='home';$('#module-page').hidden=page==='home';
- if(changed&&!options.fromHistory){if(options.replace)history.replaceState({page,context:pageContext},'');else history.pushState({page,context:pageContext},'');}
- if(page==='home'){if(!options.agent){expandWelcome();window.scrollTo({top:0,behavior:'instant'});}}
- else{audio.pause();renderModule(page);window.scrollTo({top:0,behavior:'instant'});}
- document.activeElement?.blur();
+function openComposer(){stopVoice();pauseVideos();const replace=!!state().answer;commitState({page:'home',composer:true},replace);$('#question').focus({preventScroll:true});}
+function newConversation(){if(answering){toast('请等待当前回答完成');return;}activeSession=null;$('#question').value='';openComposer();}
+function openAnswer(){pauseVideos();stopVoice();commitState({page:currentPage,answer:true,sessionId:activeSession?.id},!!state().composer);}
+function renderAnswers(){
+ let question='';const messages=activeSession?.messages||[];
+ $('#answer-content').innerHTML=messages.map((message,index)=>{if(message.role==='user'){question=message.text;return `<div class="answer-question">${esc(message.text)}</div>`;}const answer=message.answer||answerFor(question),related=Array.isArray(message.followUps)&&message.followUps.length===3?message.followUps:followUps(question);return `<article class="answer-card"><div class="answer-person"><img src="assets/representative.png" alt="数字人助手"><strong>${esc(answer.title)}</strong></div><p>${esc(answer.body)}</p><div class="answer-tools"><button data-answer-action="${esc(answer.page||'drug')}">${esc(answer.action||'查看药品资料')} ›</button><button data-copy="${index}">复制回答</button></div><div class="answer-followups"><h3>猜你想问</h3>${related.map((text,i)=>`<button data-followup="${i}" data-answer-index="${index}" ${answering?'disabled':''}>${esc(text)}<span>›</span></button>`).join('')}</div></article>`;}).join('')+(answering&&requestSession===activeSession?.id?'<div class="answer-loading" role="status"><i></i><i></i><i></i><span>正在整理资料</span></div>':'');
+ $('#answer-continue').disabled=answering;
 }
-window.addEventListener('popstate',event=>{const target=event.state?.page||'home';if($('#modal').open&&!event.state?.modal)$('#modal').close();if(event.state?.modal&&!$('#modal').open)$('#modal').showModal();if(target!==currentPage||JSON.stringify(event.state?.context||{})!==JSON.stringify(pageContext))navigate(target,{context:event.state?.context||{},fromHistory:true});if(!event.state?.modal)finishModalAction();});
-$('#new-question').onclick=()=>newConversation();
-$('#back').onclick=()=>{if(history.state?.page&&history.state.page!=='home')history.back();else navigate('home');};
-document.addEventListener('click',event=>{const button=event.target.closest('[data-page]');if(button&&button!==document.body&&button.dataset.page){navigate(button.dataset.page);}});
-$('.brand').onclick=e=>{e.preventDefault();navigate('home');};
-
-// The number can be replaced with the representative's business phone.
-const representative={name:'林晓',phone:'13800000000'};
-function openDialer(){
- audio.pause();
- $('#modal').classList.add('call-sheet');$('#modal-title').textContent='联系'+representative.name;
- $('#modal-content').innerHTML=`<div class="call-person"><img src="assets/representative.png" alt="林晓"><h2>${representative.name}</h2><div class="call-number">${representative.phone.replace(/(\d{3})(\d{4})(\d{4})/,'$1 $2 $3')}</div></div><div class="call-actions"><button id="cancel-call">取消</button><a href="tel:${representative.phone}" id="dial-call" aria-label="呼叫${representative.name}">${icon('phone')}呼叫</a></div>`;
- openPopup();$('#cancel-call').onclick=()=>$('#modal').close();
+async function askQuestion(raw){
+ const text=String(raw||'').trim();if(!text||answering)return;stopVoice();pauseVideos();
+ if(!activeSession){activeSession={id:crypto.randomUUID?.()||String(Date.now()),title:text,time:new Date().toISOString(),messages:[]};sessions.unshift(activeSession);}const session=activeSession;
+ answering=true;requestSession=session.id;session.messages.push({role:'user',text,videoId:VIDEO_FEED[activeVideo].id});sessions=sessions.slice(0,30);storage.set('sessions',sessions);$('#question').value='';$('#send').disabled=true;
+ if(!state().answer)openAnswer();else renderAnswers();$('#answer-content').scrollTop=$('#answer-content').scrollHeight;
+ try{await new Promise(resolve=>setTimeout(resolve,650));const answer=answerFor(text);session.messages.push({role:'assistant',answer,followUps:followUps(text)});storage.set('sessions',sessions);}finally{answering=false;requestSession=null;$('#send').disabled=false;if($('#answer-sheet').open&&activeSession?.id===session.id){renderAnswers();const cards=$$('.answer-card',$('#answer-content'));cards.at(-1)?.scrollIntoView?.({behavior:reduceMotion?'instant':'smooth',block:'start'});}if(currentPage==='history')renderModule('history');}
 }
-$('#contact-representative').onclick=openDialer;
-function updateKeyboard(){const vv=window.visualViewport;const offset=vv?Math.max(0,window.innerHeight-vv.height-vv.offsetTop):0;document.documentElement.style.setProperty('--keyboard-offset',offset+'px');document.body.classList.toggle('keyboard-open',offset>100&&document.activeElement===$('#question'));}
-window.visualViewport?.addEventListener('resize',updateKeyboard);window.visualViewport?.addEventListener('scroll',updateKeyboard);$('#question').addEventListener('focus',updateKeyboard);$('#question').addEventListener('blur',()=>{document.body.classList.remove('keyboard-open');document.documentElement.style.setProperty('--keyboard-offset','0px');});
-$('#question').addEventListener('input',()=>{const field=$('#question');field.style.height='auto';field.style.height=Math.min(field.scrollHeight,120)+'px';});
-$('#drug-info').onclick=()=>showModal('日达仙 · 药品资料',`<h3>说明书信息</h3><p>药品名称、规格、适应症、用法用量、禁忌、注意事项、不良反应与药物相互作用。</p><h3>循证信息</h3><p>关联指南、临床研究原文、资料版本及来源信息。</p>`);
-
-function answerFor(q) {
- if(/指南|文献|研究|循证/.test(q))return {title:'为您梳理循证资料的查阅路径',body:'您可以从“相关指南”查看指南阅读要点，梳理临床问题、证据与适用范围。\n阅读时，建议记录原文出处、发表时间与资料版本，并结合研究人群和适用范围理解证据。',action:'查看相关指南',page:'guides'};
- if(/相互作用|合用|联合/.test(q))return {title:'药物相互作用的资料核对清单',body:'查阅相互作用信息时，需要先确认完整的合并用药清单，包括处方药、非处方药与补充剂，并核对具体药品的最新获批说明书。\n建议逐项记录：合并药物、资料来源、相关风险提示，以及说明书中的限制条件。具体用药组合应结合患者背景，由医生进行专业评估。',action:'查看药品资料',page:'drug'};
- if(/剂量|用法|用量|特殊|人群|治疗|不良|反应/.test(q))return {title:'先确认用药背景，再查阅对应资料',body:'药品资料的核对应结合具体产品说明书，并关注患者年龄、既往病史、肝肾功能、合并用药等背景信息。\n用法用量、不良反应与特殊人群限制应以实际获批说明书为准。您可以通过“药品资料”查看需要关注的信息维度。',action:'查看药品资料',page:'drug'};
- if(/代表|联系|申请/.test(q))return {title:'整理您需要的学术资料',body:'您可以通过页面上的“联系我”直接找到您的专属医药代表。\n点击后查看联系电话，选择“呼叫”即可打开手机拨号界面。',action:'联系我',page:'contact'};
- if(!/药|日达仙|阅读|资料|信息|你好|您好/.test(q))return {title:'我专注于日达仙的学术资料',body:'您可以询问药品资料的查阅方式、用药信息核对要点，或查看相关指南。',action:'查看药品资料',page:'drug'};
- return {title:'为您整理这款药品的资料阅读清单',body:'建议按“药品基本信息 → 获批说明书 → 用药注意事项 → 关联指南 → 临床研究”依次查阅。\n阅读过程中，请重点核对适应症、用法用量、禁忌、注意事项与药物相互作用，并保留所查阅资料的版本和出处。',action:'查看药品资料',page:'drug'};
+function voiceStatus(text){$('#voice-status').textContent=text;$('#voice-status').hidden=!text;}
+function syncVoice(){const button=$('#voice-input');button.classList.toggle('listening',listening);button.setAttribute('aria-pressed',String(listening));button.setAttribute('aria-label',listening?'结束语音输入':'语音输入');$('span',button).textContent=listening?'结束录音':'语音输入';}
+function stopVoice(){voiceEpoch++;const old=recognition;recognition=null;listening=false;if(old){old.onresult=old.onerror=old.onend=null;try{old.abort();}catch{}}syncVoice();}
+function startVoice(){
+ if(listening){stopVoice();voiceStatus($('#question').value.trim()?'可修改识别文字后发送':'语音输入已结束');return;}
+ const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Recognition){voiceStatus('当前浏览器不支持语音识别，可使用手机键盘的语音输入');return;}
+ pauseVideos();const base=$('#question').value,epoch=++voiceEpoch;let heard=false;
+ try{recognition=new Recognition();recognition.lang='zh-CN';recognition.continuous=false;recognition.interimResults=true;recognition.maxAlternatives=1;
+ recognition.onresult=event=>{if(epoch!==voiceEpoch||!state().composer)return;let transcript='';for(let i=0;i<event.results.length;i++)transcript+=event.results[i][0].transcript;$('#question').value=(base?base+' ':'')+transcript;heard=!!transcript.trim();voiceStatus('识别中，可在结束后修改文字');};
+ recognition.onerror=event=>{if(epoch!==voiceEpoch)return;const message=event.error==='not-allowed'||event.error==='service-not-allowed'?'请允许麦克风权限，或改用文字输入':event.error==='no-speech'?'未听清，请再试一次':'语音识别暂时不可用，请重试或使用文字输入';stopVoice();voiceStatus(message);};
+ recognition.onend=()=>{if(epoch!==voiceEpoch)return;recognition=null;listening=false;syncVoice();voiceStatus(heard?'识别完成，可修改后发送':'未识别到文字，请重试或直接输入');};
+ recognition.start();listening=true;syncVoice();voiceStatus('正在聆听，请说出您的问题…');
+ }catch{stopVoice();voiceStatus('无法启动语音识别，请重试或使用文字输入');}
 }
-// Refresh saved assistant copy while retaining the user's conversations.
-if (storage.get('content-version', 0) < 6) {
- sessions.forEach(session => {
-  let question = '';
-  session.messages.forEach(message => {
-   if (message.role === 'user') question = message.text;
-   else if (message.role === 'assistant') message.answer = answerFor(question);
-  });
- });
- storage.set('sessions', sessions);
- storage.set('content-version', 6);
-}
-const assistantAvatar = '<img class="message-avatar" src="assets/representative.png" alt="数字人林晓">';
-function renderMessage(role,text,answer,index) { const el=document.createElement('div');el.className='message '+role; if(role==='user')el.textContent=text;else el.innerHTML=`${assistantAvatar}<div class="message-body"><strong>${escapeHtml(answer.title)}</strong><p>${escapeHtml(answer.body)}</p><div class="message-tools"><button data-answer-action="${answer.page}">${answer.action} ›</button><button data-copy="${index}">复制回答</button></div></div>`;$('#messages').append(el);return el; }
-async function askQuestion(q) { q=q.trim();if(!q||answering)return;if(currentPage!=='home')navigate('home',{agent:true});collapseWelcome();answering=true;$('#send').disabled=true;$('#agent-welcome').hidden=true;$('#question').value='';if(!activeSession){activeSession={id:Date.now().toString(),title:q,time:new Date().toISOString(),messages:[]};sessions.unshift(activeSession);}renderMessage('user',q);activeSession.messages.push({role:'user',text:q});const loader=document.createElement('div');loader.className='message assistant';loader.innerHTML=`${assistantAvatar}<div class="message-body"><p>正在整理资料<span aria-hidden="true">…</span></p></div>`;$('#messages').append(loader);loader.scrollIntoView({behavior:reduceMotion?'instant':'smooth',block:'nearest'});await new Promise(r=>setTimeout(r,650));loader.remove();const answer=answerFor(q);activeSession.messages.push({role:'assistant',answer});const index=activeSession.messages.length-1;const el=renderMessage('assistant','',answer,index);sessions=sessions.slice(0,30);storage.set('sessions',sessions);answering=false;$('#send').disabled=false;if(currentPage==='home')$('#chat-form').scrollIntoView({behavior:reduceMotion?'instant':'smooth',block:'end'}); }
-$('#chat-form').onsubmit=e=>{e.preventDefault();askQuestion($('#question').value);};
-$('#question').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)&&!e.isComposing){e.preventDefault();askQuestion(e.target.value);}});
-$('#messages').addEventListener('click',async e=>{const action=e.target.closest('[data-answer-action]');if(action){if(action.dataset.answerAction==='drug')$('#drug-info').click();else if(action.dataset.answerAction==='contact')openDialer();else navigate(action.dataset.answerAction);}const copy=e.target.closest('[data-copy]');if(copy){const a=activeSession?.messages[Number(copy.dataset.copy)]?.answer;if(a){try{await navigator.clipboard.writeText(a.title+'\n'+a.body);toast('回答已复制');}catch{toast('当前浏览器未开放剪贴板，请选中文字复制');}}}});
-function openHomeAgent(){if(currentPage!=='home')navigate('home',{agent:true});collapseWelcome();$('#agent-panel').scrollIntoView({behavior:reduceMotion?'instant':'smooth',block:'start'});}
-function newConversation() { if(answering){toast('请等待当前回答完成');return;}activeSession=null;$('#question').value='';$('#question').style.height='';$('#messages').innerHTML='';$('#agent-welcome').hidden=false;openHomeAgent();toast('已开启新的药品问答'); }
-
-const resources = [
- {id:'g1',type:'guides',category:'药品资料',title:'日达仙 · 资料阅读要点',publisher:'指南阅读',summary:'围绕风险评估、干预目标、治疗路径与随访信息，建立结构化阅读框架。',sections:[['阅读前先明确问题','明确目标人群、临床场景、指南适用范围与发布机构。'],['关注证据与推荐','区分推荐意见与支持证据，记录推荐强度、证据等级和原文位置。'],['连接具体药品资料','核对指南建议与具体产品的获批适应症、注意事项及说明书版本。']]},
- {id:'g2',type:'guides',category:'用药管理',title:'日达仙用药管理 · 资料核对框架',publisher:'用药资料管理',summary:'以药品说明书为起点，梳理合并用药、特殊人群与用药资料的核对顺序。',sections:[['建立用药清单','逐项记录药品名称、剂型、用法、用量和实际使用情况。'],['核对完整背景','确认病史、合并用药及检查资料是否完整。'],['记录资料依据','保留资料名称、来源、版本和核对日期，便于后续复核。']]},
- {id:'g3',type:'guides',category:'药品资料',title:'日达仙相关资料 · 循证查阅清单',publisher:'循证阅读',summary:'按研究人群、临床问题与证据类型组织资料，便于后续查阅和讨论。',sections:[['提出临床问题','以人群、干预、对照和结局构建一个可以检索的问题。'],['阅读原始出处','核验文献出处与发布时间，避免只依赖摘要转述。'],['关注适用边界','记录研究局限性与适用人群，结合实际临床背景理解。']]},
-];
-function heading(title,description,extra=''){return extra?`<div class="module-heading">${extra}</div>`:'';}
-function renderModule(page) {
- const root=$('#module-page');
- if(page==='patientInsights'){
- PatientInsights.render(root);
- }else if(page==='academic'){
- root.innerHTML=`<div class="hub-banner"><h2>学术工具</h2>${icon('book')}</div><div class="hub-links">${[['guides','book','相关指南','从临床问题出发，查阅循证依据']].map(([page,symbol,title,desc])=>`<button class="hub-row" data-page="${page}"><span class="tool-icon">${icon(symbol)}</span><div><h3>${title}</h3></div><span class="row-chevron">›</span></button>`).join('')}</div><h2 class="section-caption">随时回顾</h2><div class="profile-links"><button class="profile-row" data-page="favorites">${icon('star')}我的收藏<span class="row-chevron">›</span></button></div>`;
- }else if(page==='mine'){
- root.innerHTML=`<div class="profile-card"><span class="avatar">${escapeHtml(doctor.name[0])}</span><div><h2>${escapeHtml(doctor.name)}</h2><p>${escapeHtml(doctor.department)}<br>${escapeHtml(doctor.hospital)}</p></div></div><div class="profile-links"><button class="profile-row" data-page="history">${icon('clock')}问答记录<span class="row-chevron">›</span></button><button class="profile-row" data-page="favorites">${icon('star')}我的收藏<span class="row-chevron">›</span></button><button class="profile-row" id="mine-contact">${icon('phone')}我的专属代表<span class="row-chevron">›</span></button></div>`;$('#mine-contact').onclick=openDialer;
- }else if(page==='guides'){
- root.innerHTML=heading('相关指南','从临床问题出发，建立有据可循的资料阅读路径。')+`<div class="library-toolbar"><label class="search-field">${icon('search')}<input id="resource-search" placeholder="搜索指南或关键词" aria-label="搜索资料"></label><button class="filter-btn active" data-filter="全部">全部</button>${['药品资料','用药管理'].map(t=>`<button class="filter-btn" data-filter="${t}">${t}</button>`).join('')}</div><div id="resource-list" class="resource-list"></div>`;let filter='全部';const render=()=>{const query=$('#resource-search').value.trim();renderResources(resources.filter(r=>r.type===page&&(filter==='全部'||r.category===filter)&&(`${r.title}${r.summary}${r.category}`).includes(query)));};$('#resource-search').oninput=render;$$('[data-filter]',root).forEach(b=>b.onclick=()=>{filter=b.dataset.filter;$$('[data-filter]',root).forEach(x=>x.classList.toggle('active',x===b));render();});render();
- }else if(page==='favorites'){
- root.innerHTML=heading('我的收藏','保存值得再次阅读的学术资料。')+'<div id="resource-list" class="resource-list"></div>';renderResources(resources.filter(r=>favorites.includes(r.id)),true);
- }else if(page==='history'){
- root.innerHTML=heading('问答记录','延续每一次学术思考，随时回到之前的讨论。',`<button class="primary-button" id="new-chat">+ 新建问答</button>`)+(sessions.length?sessions.map(s=>`<button class="history-row" data-session="${escapeHtml(s.id)}"><div><b>${escapeHtml(s.title)}</b><small>${new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(s.time))} · ${s.messages.filter(m=>m.role==='user').length} 次提问</small></div>${icon('arrow')}</button>`).join(''):`<div class="empty-state">${icon('chat')}<h3>暂无问答记录</h3><button class="primary-button" id="first-chat">开始药品问答</button></div>`);$('#new-chat').onclick=newConversation;if($('#first-chat'))$('#first-chat').onclick=newConversation;$$('[data-session]').forEach(b=>b.onclick=()=>{if(answering){toast('请等待当前回答完成');return;}activeSession=sessions.find(s=>s.id===b.dataset.session);$('#messages').innerHTML='';$('#agent-welcome').hidden=true;activeSession.messages.forEach((m,i)=>renderMessage(m.role,m.text||'',m.answer,i));openHomeAgent();});
- }
-}
-function renderResources(list,isFavorites=false) {
- $('#resource-list').innerHTML=list.length?list.map(r=>`<article class="resource-card"><span class="resource-icon">${icon('book')}</span><div class="resource-card-body"><div class="resource-meta"><span class="resource-badge">${r.category}</span></div><h3>${r.title}</h3><p>${r.summary}</p><div class="resource-actions"><button data-read="${r.id}">阅读要点 ›</button><button class="save-resource" data-save="${r.id}">${favorites.includes(r.id)?'★ 已收藏':'☆ 收藏'}</button></div></div></article>`).join(''):`<div class="empty-state">${icon(isFavorites?'star':'search')}<h3>${isFavorites?'暂无收藏':'未找到相关资料'}</h3>${isFavorites?'<button class="primary-button" id="browse-guides">浏览相关指南</button>':''}</div>`;
- $$('[data-read]').forEach(b=>b.onclick=()=>{const r=resources.find(r=>r.id===b.dataset.read);showModal(r.title,`<span class="resource-badge">${r.category}</span><p>${r.summary}</p>${r.sections.map(([title,body])=>`<h3>${title}</h3><p>${body}</p>`).join('')}`);});
- $$('[data-save]').forEach(b=>b.onclick=()=>{const id=b.dataset.save;favorites=favorites.includes(id)?favorites.filter(x=>x!==id):[...favorites,id];storage.set('favorites',favorites);b.textContent=favorites.includes(id)?'★ 已收藏':'☆ 收藏';toast(favorites.includes(id)?'已加入我的收藏':'已取消收藏');if(isFavorites)renderModule('favorites');});if($('#browse-guides'))$('#browse-guides').onclick=()=>navigate('guides');
-}
+function updateKeyboard(){const vv=window.visualViewport,offset=vv?Math.max(0,innerHeight-vv.height-vv.offsetTop):0,active=state().composer&&offset>100;document.documentElement.style.setProperty('--keyboard-offset',active?offset+'px':'0px');document.body.classList.toggle('keyboard-open',active);}
+$('#doctor-header').textContent=doctor.name;$('#doctor-avatar').textContent=doctor.name[0];
+$('#ask-open').onclick=()=>{voiceStatus('');openComposer();};$('#ask-close').onclick=()=>requestClose('composer');$('#voice-input').onclick=startVoice;
+$('#chat-form').onsubmit=event=>{event.preventDefault();askQuestion($('#question').value);};
+$('#question').addEventListener('keydown',event=>{if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)&&!event.isComposing){event.preventDefault();askQuestion(event.target.value);}});
+$('#question').addEventListener('input',event=>{if(listening&&event.isTrusted)stopVoice();});
+$('#question').addEventListener('focus',updateKeyboard);$('#question').addEventListener('blur',()=>setTimeout(updateKeyboard,0));window.visualViewport?.addEventListener('resize',updateKeyboard);window.visualViewport?.addEventListener('scroll',updateKeyboard);
+$('#answer-close').onclick=()=>requestClose('answer');$('#modal-close').onclick=()=>requestClose('modal');$('#answer-continue').onclick=openComposer;$('#new-question').onclick=newConversation;
+$('#back').onclick=()=>currentPage==='history'?navigate('mine'):navigate('home');$('.brand').onclick=event=>{event.preventDefault();navigate('home');};
+document.addEventListener('click',async event=>{
+ const target=event.target.closest('button,a');if(!target)return;
+ if(target.dataset.page){navigate(target.dataset.page);return;}
+ if(target.dataset.toggleVideo!==undefined){toggleVideo(Number(target.dataset.toggleVideo));return;}
+ if(target.dataset.feedTo!==undefined){scrollToVideo(Number(target.dataset.feedTo));return;}
+ if(target.dataset.mute!==undefined){toggleMute();return;}
+ if(target.hasAttribute('data-contact')){openDialer();return;}
+ if(target.hasAttribute('data-new-chat')){newConversation();return;}
+ if(target.dataset.session){if(answering){toast('请等待当前回答完成');return;}activeSession=sessions.find(session=>session.id===target.dataset.session)||null;if(activeSession)openAnswer();return;}
+ if(target.dataset.followup!==undefined){const index=Number(target.dataset.answerIndex),message=activeSession?.messages[index],prior=activeSession?.messages[index-1];if(message?.answer){const related=message.followUps||followUps(prior?.text||'');askQuestion(related[Number(target.dataset.followup)]);}return;}
+ if(target.dataset.answerAction){if(target.dataset.answerAction==='contact')openDialer();else showDrugInfo();return;}
+ if(target.dataset.copy!==undefined){const answer=activeSession?.messages[Number(target.dataset.copy)]?.answer;if(answer){try{await navigator.clipboard.writeText(answer.title+'\n'+answer.body);toast('回答已复制');}catch{toast('请长按回答文字复制');}}}
+});
+$('#video-feed').addEventListener('input',event=>{if(event.target.dataset.seek===undefined)return;const media=$$('.feed-media')[Number(event.target.dataset.seek)];if(Number.isFinite(media.duration))media.currentTime=Number(event.target.value)/100*media.duration;});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){pauseVideos();stopVoice();}else playActiveVideo();});
+window.addEventListener('pagehide',()=>{pauseVideos();stopVoice();});
+window.addEventListener('resize',()=>{const feed=$('#video-feed');if(feed.clientHeight)feed.scrollTo({top:activeVideo*feed.clientHeight,behavior:'instant'});});
+history.scrollRestoration='manual';history.replaceState({page:'home'},'');renderFeed();applyState({page:'home'});

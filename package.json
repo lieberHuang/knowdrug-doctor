@@ -1,0 +1,6 @@
+{
+  "name": "knowdrug-doctor",
+  "private": true,
+  "scripts": {"test": "node tests/video-feed.test.cjs"},
+  "devDependencies": {"jsdom": "31.0.0"}
+}
