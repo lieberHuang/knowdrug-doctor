@@ -1,5 +1,15 @@
 .payment-query-card{padding:16px 14px 18px;overflow:hidden}
 .payment-query-card .answer-person{margin-bottom:14px}
+.payq-thinking-card{min-height:146px}
+.payq-thinking-steps{display:grid;gap:8px;padding:2px 0 3px}
+.payq-thinking-step{display:flex;align-items:center;gap:10px;min-height:30px;color:#9aa7bc;font-size:13px;line-height:1.5;opacity:.65}
+.payq-thinking-step.is-active{color:#2e558d;opacity:1;font-weight:600}
+.payq-thinking-step.is-done{color:#6b83a9;opacity:1}
+.payq-thinking-icon{display:grid;place-items:center;width:19px;height:19px;flex:none;border:2px solid #d0dcf1;border-radius:50%}
+.payq-thinking-step.is-active .payq-thinking-icon{border-color:#0866ff;border-top-color:transparent;animation:payq-thinking-spin .8s linear infinite}
+.payq-thinking-step.is-done .payq-thinking-icon{border-color:#0866ff;background:#0866ff}
+.payq-thinking-step.is-done .payq-thinking-icon::after{content:"";width:7px;height:4px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:translateY(-1px) rotate(-45deg)}
+@keyframes payq-thinking-spin{to{transform:rotate(360deg)}}
 .payq-title{margin:0 0 12px;color:#292f58;font-size:16px;font-weight:700;line-height:1.55}
 .payq-subtitle,.payq-program-intro{margin:0 0 14px;color:#67758d;font-size:13px;line-height:1.7}
 .payq-route{margin-top:10px;padding:13px 13px 12px;border:1px solid #dce8ff;border-radius:16px;background:#f0f5ff}
