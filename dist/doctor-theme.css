@@ -61,7 +61,7 @@ body[data-page="patientInsights"] #main{padding-top:18px}
 .pi-question[open] summary>i{transform:rotate(225deg)}
 .pi-answer{padding:0 24px 16px 0;color:#68758e;font-size:13px;line-height:1.75}
 .pi-dashboard :is(select,button):focus-visible{outline-color:#a6c0ff}
-.floating-ask{background:#0866ff;border-color:#558dff;box-shadow:0 8px 26px #102d7190;font-weight:650}
+.floating-ask{bottom:calc(var(--safe-bottom) + 20px);height:46px;min-height:46px;padding:0 17px;background:#3e74d4;border-color:#6b94df;box-shadow:0 7px 20px #315caa36;font-weight:600}
 .video-feed,.feed-slide,.feed-media{background:linear-gradient(180deg,#e2edfc 0px,#e7e5fc 170px,#f6f8ff 570px)}
 .feed-shade{background:none}
 .feed-progress{color:#334775;font-weight:600}
@@ -72,7 +72,9 @@ body[data-page="patientInsights"] #main{padding-top:18px}
 .feed-list-trigger{pointer-events:auto;flex:0 0 auto;min-width:74px;min-height:44px;padding:8px 10px;display:flex;align-items:center;justify-content:center;gap:5px;border:1px solid #ffffffa8;border-radius:13px;background:#edf2fff0;color:#292568;font-size:14px;font-weight:650;backdrop-filter:blur(10px)}
 .feed-list-trigger svg{width:16px;height:16px;stroke-width:1.8}
 .feed-digital{background:#e9efffe0;color:#243f81;border-color:#ffffff80;font-weight:600;backdrop-filter:blur(10px)}
-.feed-actions>button{background:#f4f6ffe0;color:#293f78;border-color:#ffffff9c;font-weight:550}
+.feed-actions{bottom:20px;align-items:center;gap:9px}
+.feed-actions>button{height:46px;min-height:46px;background:#eef3ff;color:#41649f;border-color:#dfe7f7;box-shadow:0 3px 12px #405aa315;font-weight:550}
+.feed-actions>button:first-child{width:46px}
 .feed-actions>button:active{background:#e1eaff}
 .answer-sheet{
   background:#f6f8ff;border-radius:24px 24px 0 0;
@@ -180,4 +182,5 @@ body[data-page="patientInsights"] #main{padding-top:18px}
   .doctor-top-tabs button{min-height:40px}
   .answer-sheet-footer{padding-top:7px}
   .answer-sheet-footer .answer-expert-selector button{min-height:40px}
+  .feed-actions{bottom:12px}.floating-ask{bottom:calc(var(--safe-bottom) + 12px)}
 }
