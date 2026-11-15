@@ -7,6 +7,7 @@ const storage={get(key,fallback){try{return JSON.parse(localStorage.getItem('med
 let doctor=storage.get('doctor',{name:'张医生',department:'心血管内科',hospital:'上海市第一人民医院'});
 if(doctor.hospital==='医伴示范医院'||doctor.hospital==='医伴学术中心')doctor.hospital='上海市第一人民医院';
 let sessions=storage.get('sessions',[]),activeSession=null,currentPage='home',answering=false,requestSession=null,requestController=null,streamText='';
+let paymentThinking=null;
 const EXPERTS={drug:{name:'药品专家',questions:['日达仙说明书应重点核对哪些项目？','胸腺法新在肿瘤治疗中的资料如何查阅？','日达仙用药安全信息从哪里核对？']},insurance:{name:'保险专家',questions:['日达仙支付方式查询','申请材料需要核对哪些内容？','如何查询服务申请进度？']}};
 let expertKey='drug',expertDrafts={drug:'',insurance:''};
 let activeVideo=0,muted=true,manuallyPaused=false,feedObserver,toastTimer,recognition=null,voiceEpoch=0,listening=false;
@@ -93,29 +94,40 @@ function renderModule(page){
  if(page==='history'){root.innerHTML=`<div class="history-toolbar"><h2>问答记录</h2><button class="text-button" data-new-chat>新建问答</button></div>`+(sessions.length?sessions.map(session=>`<button class="history-row" data-session="${esc(session.id)}"><div><b>${esc(session.title)}</b><small>${new Date(session.time).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})} · ${session.messages.filter(message=>message.role==='user').length} 次提问</small></div>${icon('arrow')}</button>`).join(''):'<div class="empty-state"><h3>暂无问答记录</h3><button class="primary-button" data-new-chat>开始提问</button></div>');}
 }
 function openAnswer(){pauseVideos();stopVoice();if(state().answer){renderAnswers();return;}commitState({page:currentPage,answer:true,sessionId:activeSession?.id});}
-function newConversation(){if(answering){toast('请等待当前回答完成');return;}activeSession=null;expertDrafts[expertKey]='';$('#question').value='';if(state().answer)history.replaceState({...state(),sessionId:null},'');openAnswer();}
-function selectExpert(key){if(!EXPERTS[key]||key===expertKey)return;if(answering){toast('请等待当前回答完成');return;}expertDrafts[expertKey]=$('#question').value;expertKey=key;activeSession=sessions.find(session=>(session.expert||'drug')===key)||null;$('#question').value=expertDrafts[key];if(state().answer)history.replaceState({...state(),sessionId:activeSession?.id},'');renderAnswers();}
+function stopPaymentThinking(){if(paymentThinking){clearTimeout(paymentThinking.timer);paymentThinking=null;}}
+function newConversation(){if(answering){toast('请等待当前回答完成');return;}stopPaymentThinking();activeSession=null;expertDrafts[expertKey]='';$('#question').value='';if(state().answer)history.replaceState({...state(),sessionId:null},'');openAnswer();}
+function selectExpert(key){if(!EXPERTS[key]||key===expertKey)return;if(answering){toast('请等待当前回答完成');return;}stopPaymentThinking();expertDrafts[expertKey]=$('#question').value;expertKey=key;activeSession=sessions.find(session=>(session.expert||'drug')===key)||null;$('#question').value=expertDrafts[key];if(state().answer)history.replaceState({...state(),sessionId:activeSession?.id},'');renderAnswers();}
 function appendPaymentStage(stage){
  if(answering||expertKey!=='insurance'||!['overview','products','program'].includes(stage))return;
- stopVoice();pauseVideos();
+ stopPaymentThinking();stopVoice();pauseVideos();
  const prompt=stage==='overview'?PaymentQuery.question:stage==='products'?'查看可赔产品':'e路陪护项目申请条件是什么？';
  if(!activeSession||activeSession.expert!=='insurance'){activeSession={id:MobileCompat.uuid(),title:prompt,time:new Date().toISOString(),expert:'insurance',messages:[]};sessions.unshift(activeSession);}
  activeSession.messages.push({role:'user',text:prompt,expert:'insurance',videoId:VIDEO_FEED[activeVideo].id,transport:'payment-card'});
  activeSession.messages.push({role:'assistant',paymentStage:stage,expert:'insurance',provider:'payment-card'});
+ const current={sessionId:activeSession.id,messageIndex:activeSession.messages.length-1,stage,step:0,timer:null};paymentThinking=current;
  sessions=sessions.slice(0,30);storage.set('sessions',sessions);$('#question').value='';expertDrafts.insurance='';
  if(!state().answer)openAnswer();else renderAnswers();
  const cards=$$('.payment-query-card',$('#answer-content'));cards[cards.length-1]?.scrollIntoView?.({behavior:reduceMotion?'instant':'smooth',block:'start'});
+ const advance=()=>{
+  if(paymentThinking!==current)return;
+  current.step++;
+  if(current.step>=PaymentQuery.thinkingSteps[stage].length)paymentThinking=null;
+  if(activeSession?.id===current.sessionId&&$('#answer-sheet').open){renderAnswers();const visible=$$('.payment-query-card',$('#answer-content'));visible[visible.length-1]?.scrollIntoView?.({behavior:reduceMotion?'instant':'smooth',block:'start'});}
+  if(paymentThinking===current)current.timer=setTimeout(advance,PaymentQuery.thinkingInterval[stage]);
+ };
+ current.timer=setTimeout(advance,PaymentQuery.thinkingInterval[stage]);
  if(currentPage==='history')renderModule('history');
 }
 function renderAnswers(){
  let question='';const messages=activeSession?.messages||[];
  const welcome=`<div class="doctor-ai-welcome"><span class="welcome-mark"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span></span><h3>猜你想问</h3><div class="doctor-suggestions">${EXPERTS[expertKey].questions.map((text,index)=>`<button type="button" data-suggestion="${index}">${esc(text)}<span>›</span></button>`).join('')}</div></div>`;
- $('#answer-content').innerHTML=(messages.length?messages.map((message,index)=>{if(message.role==='user'){question=message.text;return `<div class="answer-question">${esc(message.text)}</div>`;}if(message.role==='error')return `<div class="answer-error" role="status"><p>${esc(message.text)}</p><button type="button" data-retry="${index}">重新回答</button></div>`;if(message.paymentStage)return PaymentQuery.render(message.paymentStage);const answer=message.answer||answerFor(question),related=Array.isArray(message.followUps)&&message.followUps.length===3?message.followUps:followUps(question),visibleRelated=expertKey==='insurance'?[PaymentQuery.question,...related.filter(text=>text!==PaymentQuery.question)].slice(0,3):related;return `<article class="answer-card"><div class="answer-person"><img src="assets/representative.jpg" alt="数字人助手"><strong>${esc(answer.title)}</strong></div><p>${esc(answer.body)}</p><div class="answer-tools">${answer.page?`<button data-answer-action="${esc(answer.page)}">${esc(answer.action||'查看药品资料')} ›</button>`:''}<button data-copy="${index}">复制回答</button></div><div class="answer-followups"><h3>猜你想问</h3>${visibleRelated.map((text,i)=>`<button data-followup="${i}" data-answer-index="${index}" ${answering?'disabled':''}>${esc(text)}<span>›</span></button>`).join('')}</div></article>`;}).join(''):welcome)+(answering&&requestSession===activeSession?.id?(streamText?`<article class="answer-card answer-streaming"><div class="answer-person"><img src="assets/representative.jpg" alt="数字人助手"><strong>${esc(EXPERTS[expertKey].name)}</strong></div><p id="answer-stream-body">${esc(streamText)}</p><span class="stream-status">正在生成<span aria-hidden="true">▍</span></span></article>`:'<div class="answer-loading" role="status"><i></i><i></i><i></i><span>正在生成回答</span></div>'):'');
+ $('#answer-content').innerHTML=(messages.length?messages.map((message,index)=>{if(message.role==='user'){question=message.text;return `<div class="answer-question">${esc(message.text)}</div>`;}if(message.role==='error')return `<div class="answer-error" role="status"><p>${esc(message.text)}</p><button type="button" data-retry="${index}">重新回答</button></div>`;if(message.paymentStage)return paymentThinking?.sessionId===activeSession?.id&&paymentThinking.messageIndex===index?PaymentQuery.renderThinking(message.paymentStage,paymentThinking.step):PaymentQuery.render(message.paymentStage);const answer=message.answer||answerFor(question),related=Array.isArray(message.followUps)&&message.followUps.length===3?message.followUps:followUps(question),visibleRelated=expertKey==='insurance'?[PaymentQuery.question,...related.filter(text=>text!==PaymentQuery.question)].slice(0,3):related;return `<article class="answer-card"><div class="answer-person"><img src="assets/representative.jpg" alt="数字人助手"><strong>${esc(answer.title)}</strong></div><p>${esc(answer.body)}</p><div class="answer-tools">${answer.page?`<button data-answer-action="${esc(answer.page)}">${esc(answer.action||'查看药品资料')} ›</button>`:''}<button data-copy="${index}">复制回答</button></div><div class="answer-followups"><h3>猜你想问</h3>${visibleRelated.map((text,i)=>`<button data-followup="${i}" data-answer-index="${index}" ${answering?'disabled':''}>${esc(text)}<span>›</span></button>`).join('')}</div></article>`;}).join(''):welcome)+(answering&&requestSession===activeSession?.id?(streamText?`<article class="answer-card answer-streaming"><div class="answer-person"><img src="assets/representative.jpg" alt="数字人助手"><strong>${esc(EXPERTS[expertKey].name)}</strong></div><p id="answer-stream-body">${esc(streamText)}</p><span class="stream-status">正在生成<span aria-hidden="true">▍</span></span></article>`:'<div class="answer-loading" role="status"><i></i><i></i><i></i><span>正在生成回答</span></div>'):'');
  $$('.answer-expert-selector [data-expert]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.expert===expertKey)));$('#question').placeholder=`向${EXPERTS[expertKey].name}提问`;$('#send').disabled=answering;
 }
 async function askQuestion(raw){
  const text=String(raw||'').trim();if(!text||answering)return;stopVoice();pauseVideos();
  if(expertKey==='insurance'&&text===PaymentQuery.question){appendPaymentStage('overview');return;}
+ stopPaymentThinking();
  if(activeSession?.expert&&!EXPERTS[activeSession.expert])activeSession=null;
  if(!activeSession){activeSession={id:MobileCompat.uuid(),title:text,time:new Date().toISOString(),expert:expertKey,messages:[]};sessions.unshift(activeSession);}const session=activeSession,key=expertKey,controller=new AbortController();
  answering=true;requestSession=session.id;requestController=controller;streamText='';session.messages.push({role:'user',text,expert:key,videoId:VIDEO_FEED[activeVideo].id,transport:'deepseek'});sessions=sessions.slice(0,30);storage.set('sessions',sessions);$('#question').value='';expertDrafts[key]='';$('#send').disabled=true;

@@ -2,6 +2,12 @@
 const PaymentQuery=(()=>{
  const question='日达仙支付方式查询';
  const tip='温馨提示：本平台仅提供药品支付方式查询，最终理赔结论以保司理赔审核为准。';
+ const thinkingSteps={
+  overview:['正在意图识别','正在查询满足条件的支付方式'],
+  products:['正在查询满足条件的产品','正在查看产品的药品清单','正在核对赔付条件和限制','查询完毕'],
+  program:['正在查询“e路陪护”项目申请条件','查询完毕']
+ };
+ const thinkingInterval={overview:900,products:800,program:800};
  const routes=[
   {kind:'blue',label:'惠民保',title:'医保目录内费用责任（可赔）',description:'门急诊 / 住院自付 / 国谈药，含乙类先行自付，',stage:'products'},
   {kind:'yellow',label:'商业保险',title:'一般医疗保险 / 一般疾病住院医疗（可赔）',description:'住院医疗、特殊门诊、门诊手术、住院前30天后30天门急诊的合理医疗费用，',stage:'products'},
@@ -19,5 +25,6 @@ const PaymentQuery=(()=>{
  function productList(){return `<h3 class="payq-title">✅ 可配产品范围存在</h3><p class="payq-subtitle">日达仙在赔付范围内，实际赔付必须符合产品条款约定。</p>${products.map(product).join('')}<p class="payq-tip">${tip}</p>`;}
  function program(){return `<div class="payq-product-head"><h3>e路陪护</h3><span>带病保项目</span></div><p class="payq-program-intro">通用名：注射用胸腺法新（日达仙）· 入组支付会员费后 12 个月内，按购药数量分两次理赔 · 每次理赔需在海大夫平台完成至少 1 次视频问诊</p><div class="payq-table-scroll"><table class="payq-plan-table"><thead><tr><th>理赔节点</th><th>完成指定动作</th><th>可理赔盒数</th></tr></thead><tbody><tr><td>第一次理赔</td><td>在海大夫平台复诊并购药，累计购药达到 16盒（32支）至 24盒（48支）（含），且至少 1 次视频问诊</td><td>16–24盒<br>（32–48支）</td></tr><tr><td>第二次理赔</td><td>在海大夫平台累计购药达到 48盒（96支），且首次理赔流程已完成之后完成至少 1 次视频问诊</td><td>48盒<br>（96支）</td></tr><tr><td>合计</td><td>共 2 次理赔机会 · 需至少 2 次视频问诊</td><td>累计至 48盒（96支）</td></tr></tbody></table></div><a class="payq-contact" href="tel:4000000000">📞 拨打项目咨询电话</a><p class="payq-tip">${tip}</p>`;}
  function render(stage){const title=stage==='overview'?question:stage==='products'?'查看可赔产品':'e路陪护项目申请条件';const body=stage==='overview'?overview():stage==='products'?productList():program();return `<article class="answer-card payment-query-card" data-payment-stage="${stage}"><div class="answer-person"><img src="assets/representative.jpg" alt="数字人助手"><strong>${title}</strong></div>${body}</article>`;}
- return {question,render};
+ function renderThinking(stage,activeStep){return `<article class="answer-card payment-query-card payq-thinking-card" data-payment-thinking="${stage}" role="status" aria-live="polite"><div class="answer-person"><img src="assets/representative.jpg" alt="数字人助手"><strong>正在查询</strong></div><div class="payq-thinking-steps">${thinkingSteps[stage].map((label,index)=>`<div class="payq-thinking-step ${index<activeStep?'is-done':index===activeStep?'is-active':''}" ${index===activeStep?'aria-current="step"':''}><span class="payq-thinking-icon" aria-hidden="true"></span><span>${label}</span></div>`).join('')}</div></article>`;}
+ return {question,render,renderThinking,thinkingSteps,thinkingInterval};
 })();
