@@ -185,3 +185,10 @@ body[data-page="patientInsights"] #main{padding-top:18px}
   .feed-actions{bottom:12px}.floating-ask{bottom:calc(var(--safe-bottom) + 12px)}
 }
 .feed-media-status[data-state="loading"]{display:flex;align-items:center;justify-content:center;gap:9px}.feed-media-status[data-state="loading"]::before{content:"";width:16px;height:16px;border:2px solid #ffffff70;border-top-color:#fff;border-radius:50%;animation:feed-loading-spin .8s linear infinite;flex:none}@keyframes feed-loading-spin{to{transform:rotate(360deg)}}
+.feed-slide[data-video-id="introduction"] .feed-media{
+  top:60px;
+  bottom:auto;
+  height:calc(100% - 152px);
+  object-fit:contain;
+  object-position:center center;
+}
