@@ -43,7 +43,6 @@ body[data-page="patientInsights"] #main{padding-top:17px}
 .doctor-suggestions span{font-size:21px;color:#95b4e2;flex:0 0 auto}
 .answer-question{background:#e8f0ff;border-color:#dbe7fa;color:#23477a}
 .answer-card{border-color:#e0eaf7;box-shadow:0 3px 13px #193d7608}
-.answer-avatar{display:grid;place-items:center;width:33px;height:33px;flex:0 0 33px;border-radius:10px;background:#e5efff;color:#2b68ca;font-size:16px;font-weight:700}
 .answer-person strong{color:#284b78}
 .answer-card>p{color:#3c5577;line-height:1.82}
 .answer-tools{justify-content:flex-end}
