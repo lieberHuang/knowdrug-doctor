@@ -13,6 +13,21 @@ window.PatientInsights = (() => {
     {id:'followup', label:'复诊与随访', questions:['复诊时需要带哪些用药记录？','在哪里查看随访安排？','复诊前可以记录哪些近期变化？']},
     {id:'support', label:'用药疑问', questions:['在哪里查看日达仙的说明书？','有用药疑问时如何联系医护团队？']}
   ];
+  const answers = {
+    '在哪里查看我的创新支付权益？':'请核对服务方提供的权益说明与个人申请结果，重点查看适用范围、有效期和使用条件。页面信息不完整时，可通过原申请渠道向服务方确认。',
+    '申请支付支持需要准备哪些资料？':'先查看对应服务的申请条件和材料清单，再按要求准备诊断、处方及支付相关资料。具体材料以当前服务规则为准，提交时注意遮盖无关的个人信息。',
+    '在哪里查看申请进度？':'通过提交申请的原渠道查看审核状态及补充材料通知。若长时间没有更新，可凭申请记录联系服务方查询。',
+    '在哪里查看日达仙的用药记录？':'可先查阅自己的处方、就诊记录和已保存的用药记录。若记录有缺漏，向开具处方的医护团队核对。',
+    '怎样整理用药记录，方便复诊时查看？':'按日期记录实际使用情况、相关问题和复诊时想询问的事项，并带上处方或就诊记录。记录仅用于沟通，具体用药调整应由医生评估。',
+    '在哪里设置用药提醒？':'可使用手机日历或提醒工具记录医嘱中的时间安排。设置前先核对处方内容，勿仅凭提醒自行更改用药方式。',
+    '在哪里查询日达仙的保存要求？':'查看所持产品包装标签与获批说明书中的贮藏条目，并以对应批次产品的标注为准。对保存条件有疑问时，可向药师确认。',
+    '外出前可以向谁确认药品携带要求？':'出行前可向药师或负责诊疗的医护团队说明行程，核对包装、保存和携带要求。具体要求以所持产品说明书及相关规定为准。',
+    '复诊时需要带哪些用药记录？':'建议带上近期处方、实际用药记录、检查结果及需要咨询的问题，便于医生对照查看。若有不适，也可记录发生时间和表现。',
+    '在哪里查看随访安排？':'查看医院提供的复诊预约、随访通知或就诊记录。若时间不明确，可通过医院公布的预约与咨询渠道核对。',
+    '复诊前可以记录哪些近期变化？':'可记录症状变化、实际用药情况和日常活动中遇到的问题，并注明大致时间。复诊时交由医生结合检查结果判断。',
+    '在哪里查看日达仙的说明书？':'优先查看所持产品包装内的获批说明书，核对药品名称、规格和版本。如需电子版，可向药师咨询可靠的查询渠道。',
+    '有用药疑问时如何联系医护团队？':'可通过就诊医院公布的电话、线上复诊或门诊渠道联系医护团队。咨询时说明药品名称、当前处方和具体疑问，避免在公开渠道发送身份资料。'
+  };
 
   const dateFormat = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'});
   const today = Date.parse(dateFormat.format(new Date()) + 'T00:00:00Z');
@@ -63,13 +78,11 @@ window.PatientInsights = (() => {
     if(!available.length)return '<p class="pi-empty">暂无相关提问。</p>';
     const visible=matching.filter(record=>!selectedTopic || record.topic===selectedTopic);
     const unique=[...new Map(visible.map(record=>[record.text,record])).values()];
-    const names=new Map(available.map(topic=>[topic.id,topic.label]));
     return `<div class="pi-topics" role="group" aria-label="提问主题">
       <button type="button" data-pi-topic="" aria-pressed="${!selectedTopic}">全部主题</button>
       ${available.map(topic=>`<button type="button" data-pi-topic="${topic.id}" aria-pressed="${topic.id===selectedTopic}">${topic.label}</button>`).join('')}
     </div>
-    <h3>代表性提问</h3>
-    <ul class="pi-questions">${unique.slice(0,5).map(record=>`<li><p>${record.text}</p><span>${names.get(record.topic)}</span></li>`).join('')}</ul>`;
+    <ul class="pi-questions">${unique.slice(0,5).map(record=>`<li><details class="pi-question"><summary><span>${record.text}</span><i aria-hidden="true"></i></summary><div class="pi-answer">${answers[record.text]}</div></details></li>`).join('')}</ul>`;
   }
 
   function render(root) {
@@ -86,12 +99,10 @@ window.PatientInsights = (() => {
       </section>
       <section class="pi-card" aria-labelledby="pi-topics-title">
         <h2 id="pi-topics-title">提问主题</h2>
-        <p class="pi-context" role="status"></p>
         <div class="pi-results"></div>
       </section>
     </div>`;
     const panel=root.querySelector('.pi-dashboard');
-    const context=panel.querySelector('.pi-context');
     const results=panel.querySelector('.pi-results');
     const distribution=panel.querySelector('.pi-distribution');
     const chartButtons=[...panel.querySelectorAll('[data-pi-chart]')];
@@ -99,7 +110,6 @@ window.PatientInsights = (() => {
     function updateResults() {
       const cohort=patients;
       const members=new Set(cohort);
-      context.textContent='全部患者';
       results.innerHTML=resultsMarkup(records.filter(({patient})=>members.has(patient)),selectedTopic);
       distribution.innerHTML=distributionMarkup(cohort,selectedChart==='profile'?[sex,age]:[region,stage]);
     }
