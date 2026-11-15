@@ -61,7 +61,16 @@ body[data-page="patientInsights"] #main{padding-top:18px}
 .pi-question[open] summary>i{transform:rotate(225deg)}
 .pi-answer{padding:0 24px 16px 0;color:#68758e;font-size:13px;line-height:1.75}
 .pi-dashboard :is(select,button):focus-visible{outline-color:#a6c0ff}
-.floating-ask{bottom:calc(var(--safe-bottom) + 20px);height:46px;min-height:46px;padding:0 17px;background:#3e74d4;border-color:#6b94df;box-shadow:0 7px 20px #315caa36;font-weight:600}
+.floating-ask{
+  bottom:calc(var(--safe-bottom) + 20px);height:46px;min-height:46px;padding:0 17px;
+  color:#254780;font-weight:650;
+  background:linear-gradient(132deg,rgba(243,248,255,.93),rgba(202,223,255,.88) 51%,rgba(157,192,244,.85));
+  border:1px solid rgba(255,255,255,.82);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 9px 25px rgba(49,92,170,.24);
+  -webkit-backdrop-filter:blur(18px) saturate(1.35);
+  backdrop-filter:blur(18px) saturate(1.35);
+}
+.floating-ask:active{background:linear-gradient(132deg,rgba(222,237,255,.95),rgba(155,194,247,.9))}
 .video-feed,.feed-slide,.feed-media{background:linear-gradient(180deg,#e2edfc 0px,#e7e5fc 170px,#f6f8ff 570px)}
 .feed-shade{background:none}
 .feed-progress{color:#334775;font-weight:600}
