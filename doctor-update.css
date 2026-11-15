@@ -20,6 +20,10 @@ body[data-page="patientInsights"] #main{padding-top:17px}
 .video-feed{height:calc(var(--mobile-height,100vh) - var(--header-height) - var(--doctor-tab-height) - var(--safe-top) - var(--safe-bottom));background:#142a48}
 .feed-media{object-fit:contain;background:#142a48}
 .feed-shade{background:linear-gradient(180deg,#132c4a55 0%,transparent 18%,transparent 62%,#10274799 86%,#091b37ec 100%)}
+.feed-tap{position:absolute;inset:0;z-index:1;width:100%;height:100%;padding:0;opacity:0;touch-action:pan-y;cursor:pointer}
+.feed-tap:focus-visible{opacity:1;outline:3px solid #fff;outline-offset:-4px}
+.video-play{z-index:2;pointer-events:none}
+.feed-topline,.feed-progress,.feed-actions,.feed-media-status{z-index:3}
 .feed-story{display:none}
 .feed-story h2{display:inline-block;max-width:min(86%,355px);padding:8px 11px;margin:0;border-radius:10px;background:#102f55a8;backdrop-filter:blur(9px);font-size:16px;line-height:1.45;font-weight:600;text-shadow:none}
 .feed-topline{top:13px}
