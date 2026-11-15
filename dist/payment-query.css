@@ -1,0 +1,51 @@
+.payment-query-card{padding:16px 14px 18px;overflow:hidden}
+.payment-query-card .answer-person{margin-bottom:14px}
+.payq-title{margin:0 0 12px;color:#292f58;font-size:16px;font-weight:700;line-height:1.55}
+.payq-subtitle,.payq-program-intro{margin:0 0 14px;color:#67758d;font-size:13px;line-height:1.7}
+.payq-route{margin-top:10px;padding:13px 13px 12px;border:1px solid #dce8ff;border-radius:16px;background:#f0f5ff}
+.payq-route.payq-yellow{background:#fff8ec;border-color:#f6e9cd}
+.payq-route.payq-green{background:#edf8f2;border-color:#d9efdf}
+.payq-route-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.payq-ribbon{flex:none;padding:5px 9px;border-radius:9px;background:#477ddd;color:#fff;font-size:12px;font-weight:700;line-height:1.4}
+.payq-yellow .payq-ribbon{background:#d99a33}
+.payq-green .payq-ribbon{background:#42a779}
+.payq-route h4{margin:0;min-width:0;color:#303d62;font-size:14px;font-weight:700;line-height:1.55}
+.payq-route p{margin:9px 0 10px;color:#536680;font-size:13px;line-height:1.7;overflow-wrap:anywhere}
+.payq-route p span{color:#8b99b0}
+.payq-route button{display:flex;align-items:center;justify-content:center;gap:5px;margin-left:auto;min-height:40px;padding:8px 17px;border:0;border-radius:12px;background:#0866ff;color:#fff;font-size:13px;font-weight:650}
+.payq-route button span{font-size:19px;line-height:1}
+.payq-product{margin-top:12px;padding:14px;border:1px solid #e2eaff;border-radius:16px;background:#f8faff}
+.payq-product-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px}
+.payq-product-head h4,.payq-product-head h3{margin:0;color:#292f58;font-size:15px;font-weight:650;line-height:1.5}
+.payq-product-head span{padding:4px 8px;border-radius:8px;background:#e8efff;color:#3a6cc3;font-size:11px;font-weight:650;white-space:nowrap}
+.payq-product-info{padding:13px;border-radius:13px;background:#edf2ff}
+.payq-responsibility{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;color:#303c62}
+.payq-responsibility>strong{min-width:0;font-size:16px;line-height:1.45;overflow-wrap:anywhere}
+.payq-responsibility>b{flex:none;color:#0866ff;font-size:25px;line-height:1;letter-spacing:-.04em}
+.payq-responsibility small{margin-left:2px;font-size:13px;letter-spacing:0}
+.payq-scope{margin:11px 0 8px}
+.payq-scope p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:0;color:#596983;font-size:12px;line-height:1.65;overflow-wrap:anywhere}
+.payq-scope.is-open p{display:block}
+.payq-scope button{display:flex;align-items:center;gap:5px;margin:6px auto 0;padding:6px 10px;min-height:36px;border:0;background:transparent;color:#0866ff;font-size:12px;font-weight:650}
+.payq-scope.is-open button span{transform:rotate(180deg)}
+.payq-deduct{margin:8px 0 12px;color:#34476b;font-size:12px;line-height:1.75}
+.payq-deduct b{color:#303c62}
+.payq-deduct strong{color:#0866ff;font-size:14px}
+.payq-deduct span{color:#7d8aa2}
+.payq-ratios{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px}
+.payq-ratio{min-width:0}
+.payq-ratio strong{display:block;padding:8px 9px;border-radius:8px;background:#dce9ff;color:#2768d6;font-size:12px;line-height:1.4}
+.payq-ratio-track{height:5px;margin:6px 0;border-radius:5px;background:#cbdaf5;overflow:hidden}
+.payq-ratio-track i{display:block;height:100%;border-radius:5px;background:#3380f6}
+.payq-ratio small{display:block;color:#7c8ba4;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.payq-contact{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;margin-top:13px;padding:8px 10px;border:1px solid #bfd5ff;border-radius:12px;background:#fff;color:#0866ff;font-size:13px;font-weight:650;text-align:center;text-decoration:none}
+.payq-contact:active{background:#eef4ff}
+.payq-tip{margin:16px 2px 2px;color:#8290a9;font-size:11px;line-height:1.65}
+.payq-table-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;border:1px solid #dde8ff;border-radius:12px}
+.payq-plan-table{width:100%;min-width:510px;border-collapse:collapse;color:#455576;font-size:12px;line-height:1.55}
+.payq-plan-table th{padding:9px 10px;background:#e7efff;color:#2869d1;font-weight:700;text-align:left;white-space:nowrap}
+.payq-plan-table td{padding:10px;border-top:1px solid #e3eafa;vertical-align:top;background:#f9fbff}
+.payq-plan-table th:first-child,.payq-plan-table td:first-child{width:100px;white-space:nowrap}
+.payq-plan-table th:last-child,.payq-plan-table td:last-child{width:110px}
+.payq-plan-table tbody tr:last-child td{font-weight:700;color:#303c62}
+@media(max-width:360px){.payment-query-card{padding-inline:12px}.payq-product{padding:11px}.payq-product-info{padding:10px}.payq-route-head{align-items:flex-start}.payq-route h4{font-size:13px}}
