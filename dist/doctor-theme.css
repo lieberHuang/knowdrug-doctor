@@ -198,6 +198,6 @@ body[data-page="patientInsights"] #main{padding-top:18px}
   top:60px;
   bottom:auto;
   height:calc(100% - 152px);
-  object-fit:contain;
-  object-position:center center;
+  object-fit:cover;
+  object-position:center 10%;
 }
