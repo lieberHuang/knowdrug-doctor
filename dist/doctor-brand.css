@@ -1,0 +1,6 @@
+/* Same wordmark treatment as the representative app; doctor features stay unchanged. */
+.topbar .brand{gap:0;color:#292828;font-size:22px;font-weight:800;letter-spacing:-.045em}
+.brand-wordmark{display:inline-flex;align-items:baseline;gap:5px;white-space:nowrap;line-height:1}
+.brand-wordmark em{display:inline-block;font-style:normal;font-weight:900;letter-spacing:-.09em;transform:skew(-9deg);transform-origin:center bottom}
+.brand-wordmark strong{font-size:1.04em;font-weight:800;letter-spacing:-.065em}
+@media(max-width:360px){.topbar .brand{font-size:18px}.brand-wordmark{gap:4px}}
