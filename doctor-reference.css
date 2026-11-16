@@ -51,7 +51,7 @@
 }
 .feed-actions>button:first-child{position:absolute;left:18px;bottom:36px;width:44px;min-width:44px;height:44px;min-height:44px;padding:0;border-radius:50%}
 .feed-actions>.feed-contact{
-  position:absolute;right:18px;bottom:180px;display:flex;flex-direction:column;gap:2px;
+  position:absolute;right:18px;bottom:108px;display:flex;flex-direction:column;gap:2px;
   width:64px;min-width:64px;height:64px;min-height:64px;padding:7px 3px;
   border:3px solid #fff;border-radius:50%;background:#fff9f4;
   box-shadow:0 7px 20px #44231355;color:#dd6319;font-size:10px;font-weight:750;line-height:1.15;
@@ -60,7 +60,7 @@
 .feed-actions>button[aria-pressed="true"]{background:#fff0e4;border-color:#ffd3b2;color:#db5d0e}
 .floating-ask{
   right:max(17px,calc((100vw - 480px)/2 + 17px));
-  bottom:calc(var(--safe-bottom) + 254px);
+  bottom:calc(var(--safe-bottom) + 182px);
   width:64px;height:64px;min-width:64px;min-height:64px;
   padding:7px 3px;flex-direction:column;gap:2px;
   border:3px solid #fff;border-radius:50%;
@@ -108,14 +108,14 @@
   .feed-media,.feed-slide[data-video-id="introduction"] .feed-media{left:12px;right:12px;width:calc(100% - 24px)}
   .feed-shade{left:12px;right:12px}
   .feed-progress{left:68px;right:15px}.feed-actions>button:first-child{left:13px}
-  .feed-actions>.feed-contact{right:13px;bottom:170px;width:58px;min-width:58px;height:58px;min-height:58px}
-  .floating-ask{width:58px;height:58px;min-width:58px;min-height:58px;right:13px;bottom:calc(var(--safe-bottom) + 238px)}
+  .feed-actions>.feed-contact{right:13px;bottom:104px;width:58px;min-width:58px;height:58px;min-height:58px}
+  .floating-ask{width:58px;height:58px;min-width:58px;min-height:58px;right:13px;bottom:calc(var(--safe-bottom) + 172px)}
   .pi-chart-switch{gap:5px}.pi-chart-switch button{padding-inline:9px;font-size:12px}
 }
 @media(max-height:600px){
   .feed-media,.feed-slide[data-video-id="introduction"] .feed-media{top:56px;height:calc(100% - 56px)}
   .feed-progress{bottom:12px}.feed-actions>button:first-child{bottom:30px}
-  .feed-actions>.feed-contact{bottom:156px;width:56px;min-width:56px;height:56px;min-height:56px}
-  .floating-ask{bottom:calc(var(--safe-bottom) + 222px);width:56px;height:56px;min-width:56px;min-height:56px}
+  .feed-actions>.feed-contact{bottom:104px;width:56px;min-width:56px;height:56px;min-height:56px}
+  .floating-ask{bottom:calc(var(--safe-bottom) + 170px);width:56px;height:56px;min-width:56px;min-height:56px}
 }
 @media(prefers-reduced-motion:reduce){.floating-ask{transition:none}}
