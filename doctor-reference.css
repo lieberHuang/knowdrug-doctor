@@ -62,7 +62,7 @@
   width:64px;height:64px;min-width:64px;min-height:64px;
   padding:7px 3px;flex-direction:column;gap:2px;
   border:1.5px solid #ffffffd9;border-radius:50%;
-  background:linear-gradient(145deg,#ffffffb8 0%,#fff3e8a8 56%,#ffdfc59c 100%);
+  background:linear-gradient(145deg,#fff8efbd 0%,#ffe8d5b0 56%,#ffcfada3 100%);
   color:#ff6b00;text-shadow:0 1px 1px #ffffff99;
   box-shadow:0 11px 26px #3823194d,0 2px 7px #7a3b1f35,inset 0 1px 1px #fff,inset 0 -1px 4px #ffffff70;
   -webkit-backdrop-filter:blur(22px) saturate(1.8);backdrop-filter:blur(22px) saturate(1.8);
