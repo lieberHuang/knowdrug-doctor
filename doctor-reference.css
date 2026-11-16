@@ -53,8 +53,11 @@
 .feed-actions>.feed-contact{
   position:absolute;right:18px;bottom:108px;display:flex;flex-direction:column;gap:2px;
   width:64px;min-width:64px;height:64px;min-height:64px;padding:7px 3px;
-  border:3px solid #fff;border-radius:50%;background:#fff9f4;
-  box-shadow:0 7px 20px #44231355;color:#dd6319;font-size:10px;font-weight:750;line-height:1.15;
+  border:2px solid #ffffffed;border-radius:50%;
+  background:linear-gradient(145deg,#ffffffeb,#fff2e2d6 56%,#ffe0c9c7);
+  box-shadow:0 13px 28px #3c231b57,0 2px 8px #b3511a38,inset 0 1px 1px #fff,inset 0 -2px 5px #d3743630;
+  -webkit-backdrop-filter:blur(20px) saturate(1.5);backdrop-filter:blur(20px) saturate(1.5);
+  color:#b95117;font-size:10px;font-weight:750;line-height:1.15;
 }
 .feed-actions>.feed-contact svg{width:20px;height:20px}
 .feed-actions>button[aria-pressed="true"]{background:#fff0e4;border-color:#ffd3b2;color:#db5d0e}
@@ -63,15 +66,16 @@
   bottom:calc(var(--safe-bottom) + 182px);
   width:64px;height:64px;min-width:64px;min-height:64px;
   padding:7px 3px;flex-direction:column;gap:2px;
-  border:3px solid #fff;border-radius:50%;
-  background:linear-gradient(145deg,#ff9b48 0%,#ff6b00 52%,#ec5700 100%);
-  color:#fff;box-shadow:0 9px 24px #b9551d61,inset 0 1px 0 #ffffff8a;
-  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  border:2px solid #ffffffeb;border-radius:50%;
+  background:linear-gradient(145deg,#ffaf72e8 0%,#ff751be0 52%,#e85a08e8 100%);
+  color:#fff;text-shadow:0 1px 2px #9a3e1499;
+  box-shadow:0 14px 29px #5e2b1c75,0 2px 9px #e9682380,inset 0 1px 1px #ffffffc9,inset 0 -2px 5px #a6381959;
+  -webkit-backdrop-filter:blur(20px) saturate(1.5);backdrop-filter:blur(20px) saturate(1.5);
   font-size:10px;font-weight:750;line-height:1.15;white-space:nowrap;
 }
 .floating-ask svg{width:20px;height:20px;stroke-width:2}
 .floating-ask span{display:block}
-.floating-ask:active{background:linear-gradient(145deg,#fa8531,#db4c00)}
+.floating-ask:active{background:linear-gradient(145deg,#f9964de8,#d94c07e8)}
 .floating-ask:focus-visible{outline:3px solid #723a1a;outline-offset:3px}
 .pi-card{border:0;border-radius:22px;background:#fff;box-shadow:0 5px 20px #89552808}
 .pi-card h2{font-weight:750}.pi-card h3{font-weight:650}
