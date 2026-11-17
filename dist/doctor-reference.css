@@ -40,6 +40,10 @@
   background:#f7e6d8;background-image:none;
 }
 .feed-slide[data-video-id="introduction"] .feed-media{object-position:center 10%}
+.feed-slide:not([data-video-id="introduction"]) .feed-media{
+  object-fit:contain;object-position:center top;
+  background:#eaded4;
+}
 .feed-shade{display:block;inset:auto 16px 0;height:180px;border-radius:0 0 18px 18px;background:linear-gradient(180deg,transparent,#1d171ab3)}
 .video-play{top:calc(50% + 31px);background:#382c2a85;border-color:#ffffff9c}
 .feed-progress{right:20px;bottom:18px;left:76px;color:#fff;font-size:12px;font-weight:600;text-shadow:0 1px 6px #1d171acc}
